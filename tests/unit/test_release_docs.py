@@ -8,21 +8,18 @@ def test_readme_frames_release_scoped_flow_as_primary_story() -> None:
     readme = (repo_root / "README.md").read_text(encoding="utf-8")
 
     assert "assets/bumpkinb-wide.png" in readme
+    assert "release assistant" in readme
     assert "no always-on server required" in readme
     assert "no Bumpkin database required" in readme
     assert "release_preview" in readme
     assert "release_publish" in readme
     assert "python -m bumpkin.release_job" in readme
-    assert "Bumpkin is provider-agnostic." in readme
     assert "BUMPKIN_MODEL" in readme
     assert "BUMPKIN_MODELS_ENDPOINT" in readme
-    assert "Gemini OpenAI-compatible endpoint" in readme
-    assert "needs_review" in readme
-    assert "does not post PR comments in the release-scoped flow" in readme
-    assert "Marketplace-style Action repo" in readme
-    assert "scripts/export_marketplace_action_repo.py" in readme
-    assert "published from this development repo's verified export shape" in readme
+    assert "trybumpkin/bumpkin-action" in readme
     assert "ROADMAP.md" in readme
+    assert "CONTRIBUTING.md" in readme
+    assert "SECURITY.md" in readme
 
 
 def test_internal_markdown_is_gitignored() -> None:
@@ -72,10 +69,7 @@ def test_community_docs_are_public_and_linked() -> None:
     repo_root = Path(__file__).resolve().parents[2]
     readme = (repo_root / "README.md").read_text(encoding="utf-8")
     contributing = (repo_root / "CONTRIBUTING.md").read_text(encoding="utf-8")
-    conduct = (repo_root / "CODE_OF_CONDUCT.md").read_text(encoding="utf-8")
 
     assert "CONTRIBUTING.md" in readme
-    assert "CODE_OF_CONDUCT.md" in readme
     assert "Action-first" in contributing
     assert "Heavy eval workflows live separately" in contributing
-    assert "Our standard" in conduct

@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest a feature or product improvement for Bumpkin
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What would you like Bumpkin to do?
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Extra context
+      description: Share examples, repo context, language/versioning details, or tradeoffs.

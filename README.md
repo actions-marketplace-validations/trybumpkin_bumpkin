@@ -98,6 +98,12 @@ The standalone Action repo is published from this development repo's verified ex
 
 Current priorities and support direction live in [`ROADMAP.md`](ROADMAP.md).
 
+## Community
+
+- contribution guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- code of conduct: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+- security reporting: [`SECURITY.md`](SECURITY.md)
+
 ## Run locally
 
 You can also preview a release locally without any webhook server:

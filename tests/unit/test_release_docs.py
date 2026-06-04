@@ -32,6 +32,9 @@ def test_internal_markdown_is_gitignored() -> None:
     assert "!README.md" in gitignore
     assert "!CHANGELOG.md" in gitignore
     assert "!SECURITY.md" in gitignore
+    assert "!ROADMAP.md" in gitignore
+    assert "!CONTRIBUTING.md" in gitignore
+    assert "!CODE_OF_CONDUCT.md" in gitignore
 
 
 def test_env_example_marks_app_runtime_as_optional() -> None:
@@ -62,3 +65,16 @@ def test_roadmap_is_public_and_mentions_language_expansion() -> None:
     assert "Go" in roadmap
     assert "Rust" in roadmap
     assert "Java/Kotlin" in roadmap
+
+
+def test_community_docs_are_public_and_linked() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    readme = (repo_root / "README.md").read_text(encoding="utf-8")
+    contributing = (repo_root / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    conduct = (repo_root / "CODE_OF_CONDUCT.md").read_text(encoding="utf-8")
+
+    assert "CONTRIBUTING.md" in readme
+    assert "CODE_OF_CONDUCT.md" in readme
+    assert "Action-first" in contributing
+    assert "Heavy eval workflows live separately" in contributing
+    assert "Our standard" in conduct

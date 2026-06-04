@@ -94,6 +94,10 @@ To support the Marketplace split, Bumpkin now has:
 
 The standalone Action repo is published from this development repo's verified export shape.
 
+## Roadmap
+
+Current priorities and support direction live in [`ROADMAP.md`](ROADMAP.md).
+
 ## Run locally
 
 You can also preview a release locally without any webhook server:

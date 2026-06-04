@@ -53,3 +53,20 @@ def test_action_runtime_and_ci_use_separate_requirements_files() -> None:
 
     assert "requirements.txt" in action_text
     assert "requirements-dev.txt" in ci_text
+
+
+def test_ci_and_evals_workflows_are_separated() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    ci = yaml.safe_load((repo_root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8"))
+    evals = yaml.safe_load(
+        (repo_root / ".github" / "workflows" / "evals.yml").read_text(encoding="utf-8")
+    )
+
+    assert list(ci["jobs"].keys()) == ["safety-floor"]
+    assert "workflow_dispatch" in ci.get("on", ci.get(True))
+
+    evals_on = evals.get("on", evals.get(True))
+    assert "workflow_dispatch" in evals_on
+    assert "run_provider_eval" in evals_on["workflow_dispatch"]["inputs"]
+    assert "run_multilanguage_eval" in evals_on["workflow_dispatch"]["inputs"]
+    assert "run_batch_eval" in evals_on["workflow_dispatch"]["inputs"]

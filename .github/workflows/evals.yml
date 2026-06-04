@@ -1,0 +1,410 @@
+name: Evals
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_provider_eval:
+        description: "Run provider-backed JS/TS canary eval"
+        required: false
+        default: false
+        type: boolean
+      run_multilanguage_eval:
+        description: "Run deterministic multi-language eval lanes"
+        required: false
+        default: false
+        type: boolean
+      run_batch_eval:
+        description: "Run full JS/TS batch eval aggregation"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  eval-smoke-js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements-dev.txt
+      - name: Validate degraded deterministic eval path without model token
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          MODELS_TOKEN="" GITHUB_MODELS_TOKEN="" GITHUB_TOKEN="" \
+            PYTHONPATH=src python src/eval.py \
+              --mode auto \
+              --language-group javascript-typescript \
+              --max-retries 1 \
+              --continue-on-preflight-failure \
+              --strict \
+              --min-pass-rate 0.70 \
+              --output-json artifacts/eval-no-token.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          payload = json.loads(Path("artifacts/eval-no-token.json").read_text())
+          preflight = payload.get("preflight", {})
+          metrics = payload.get("metrics", {})
+          results = payload.get("results", [])
+          manual_review_rate = float(metrics.get("manual_review_rate", 0.0) or 0.0)
+          unexpected_manual_review_rate = float(
+              metrics.get("unexpected_manual_review_rate", manual_review_rate) or 0.0
+          )
+          critical_missing_proofs_total = int(metrics.get("critical_missing_proofs_total", 0) or 0)
+          unexpected_critical_missing_proofs_total = int(
+              metrics.get(
+                  "unexpected_critical_missing_proofs_total",
+                  critical_missing_proofs_total,
+              ) or 0
+          )
+          contradiction_count = int(metrics.get("contradiction_count", 0) or 0)
+
+          if str(preflight.get("status", "")).strip().lower() != "failed":
+              raise SystemExit("Expected preflight to fail in no-token smoke path.")
+          if not preflight.get("continued"):
+              raise SystemExit("Expected degraded eval run to continue after preflight failure.")
+          if int(metrics.get("evaluated_fixture_count", 0)) <= 0:
+              raise SystemExit("Expected evaluated fixtures in degraded smoke path.")
+          if not all(
+              str((row.get("actual") or {}).get("decision_authority", "")).strip().lower()
+              in {"deterministic", "court"}
+              for row in results
+          ):
+              raise SystemExit("Expected pipeline-parity results with explicit decision_authority.")
+          if not any(
+              str((row.get("actual") or {}).get("advisory_status", "")).strip().lower()
+              in {"skipped", "degraded"}
+              for row in results
+          ):
+              raise SystemExit("Expected advisory status metadata in degraded smoke path.")
+          if str(preflight.get("status", "")).strip().lower() == "ok":
+              if unexpected_manual_review_rate > 0.20:
+                  raise SystemExit(
+                      f"Strict gate failed: unexpected_manual_review_rate {unexpected_manual_review_rate:.2%} exceeds 20%."
+                  )
+              if unexpected_critical_missing_proofs_total > 0:
+                  raise SystemExit(
+                      "Strict gate failed: unexpected_critical_missing_proofs_total must be 0."
+                  )
+              if contradiction_count > 0:
+                  raise SystemExit("Strict gate failed: contradiction_count must be 0.")
+          PY
+
+  eval-language-lanes:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    if: github.event.inputs.run_multilanguage_eval == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language_group: python
+            baseline: test-diffs/baselines/python-v1.json
+          - language_group: go
+            baseline: test-diffs/baselines/go-v1.json
+          - language_group: rust
+            baseline: test-diffs/baselines/rust-v1.json
+          - language_group: java-kotlin
+            baseline: test-diffs/baselines/java-kotlin-v1.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements-dev.txt
+      - name: Run deterministic multi-language eval lane
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          MODELS_TOKEN="" GITHUB_MODELS_TOKEN="" GITHUB_TOKEN="" \
+            PYTHONPATH=src python src/eval.py \
+              --mode auto \
+              --language-group "${{ matrix.language_group }}" \
+              --prompt-gate-baseline "${{ matrix.baseline }}" \
+              --continue-on-preflight-failure \
+              --strict \
+              --output-json "artifacts/eval-${{ matrix.language_group }}.json"
+          PYTHONPATH=src python scripts/ci/run_rollout_gates.py \
+            --eval-json "artifacts/eval-${{ matrix.language_group }}.json" \
+            --require-preflight-status any \
+            --min-pass-rate 0.0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eval-lane-${{ matrix.language_group }}
+          path: artifacts/eval-${{ matrix.language_group }}.json
+          if-no-files-found: ignore
+
+  eval-preflight-js:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    if: github.event.inputs.run_provider_eval == 'true' || github.event.inputs.run_batch_eval == 'true'
+    outputs:
+      preflight_ok: ${{ steps.preflight-status.outputs.preflight_ok }}
+      has_token: ${{ steps.token-check.outputs.has_token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements-dev.txt
+      - id: token-check
+        env:
+          MODELS_TOKEN: ${{ secrets.MODELS_TOKEN }}
+          GITHUB_MODELS_TOKEN: ${{ secrets.GITHUB_MODELS_TOKEN }}
+        run: |
+          if [ -n "${GITHUB_MODELS_TOKEN}" ] || [ -n "${MODELS_TOKEN}" ]; then
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
+          fi
+      - id: run-preflight
+        if: steps.token-check.outputs.has_token == 'true'
+        env:
+          MODELS_TOKEN: ${{ secrets.MODELS_TOKEN }}
+          GITHUB_MODELS_TOKEN: ${{ secrets.GITHUB_MODELS_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+          BUMPKIN_PROVIDER: auto
+          BUMPKIN_MODELS_ENDPOINT: ${{ secrets.BUMPKIN_MODELS_ENDPOINT || vars.BUMPKIN_MODELS_ENDPOINT || 'https://openrouter.ai/api/v1/chat/completions' }}
+          BUMPKIN_MODEL: ${{ secrets.BUMPKIN_MODEL || vars.BUMPKIN_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free' }}
+        run: |
+          mkdir -p artifacts
+          PYTHONPATH=src python src/eval.py \
+            --mode auto \
+            --language-group javascript-typescript \
+            --preflight-only \
+            --output-json artifacts/preflight.json
+      - id: preflight-status
+        shell: bash
+        run: |
+          if [ "${{ steps.token-check.outputs.has_token }}" != "true" ]; then
+            echo "preflight_ok=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          payload = json.loads(Path("artifacts/preflight.json").read_text())
+          preflight = payload.get("preflight", {})
+          status = str(preflight.get("status", "")).strip().lower()
+          reason = str(preflight.get("reason", "")).strip()
+          print(f"preflight status={status or 'unknown'}")
+          if reason:
+              print(f"preflight reason={reason}")
+
+          ok = "true" if status == "ok" else "false"
+          with Path(".github_preflight_output").open("w", encoding="utf-8") as fh:
+              fh.write(ok)
+          PY
+          echo "preflight_ok=$(cat .github_preflight_output)" >> "$GITHUB_OUTPUT"
+
+  eval-canary-js:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    needs: [eval-preflight-js]
+    if: github.event.inputs.run_provider_eval == 'true' && needs.eval-preflight-js.outputs.has_token == 'true' && needs.eval-preflight-js.outputs.preflight_ok == 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements-dev.txt
+      - name: "Run model canary eval (4 fixtures: major/minor/low-confidence/no-bump-noise)"
+        env:
+          MODELS_TOKEN: ${{ secrets.MODELS_TOKEN }}
+          GITHUB_MODELS_TOKEN: ${{ secrets.GITHUB_MODELS_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+          BUMPKIN_PROVIDER: auto
+          BUMPKIN_MODELS_ENDPOINT: ${{ secrets.BUMPKIN_MODELS_ENDPOINT || vars.BUMPKIN_MODELS_ENDPOINT || 'https://openrouter.ai/api/v1/chat/completions' }}
+          BUMPKIN_MODEL: ${{ secrets.BUMPKIN_MODEL || vars.BUMPKIN_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free' }}
+          BUMPKIN_EVAL_CASE_DELAY_MS: 4000
+          BUMPKIN_MODEL_CALL_MIN_INTERVAL_MS: 4000
+          BUMPKIN_REQUEST_TIMEOUT: ${{ vars.BUMPKIN_REQUEST_TIMEOUT || '60' }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts /tmp/bumpkin-canary
+          for name in major_signature_change_real minor_add_export_formal_real low_confidence_ambiguous patch_docs_config_noise_real; do
+            cp -R "test-diffs/${name}" "/tmp/bumpkin-canary/${name}"
+          done
+          PYTHONPATH=src python src/eval.py \
+            --mode auto \
+            --language-group javascript-typescript \
+            --fixtures-dir /tmp/bumpkin-canary \
+            --max-retries 1 \
+            --request-timeout "${BUMPKIN_REQUEST_TIMEOUT}" \
+            --continue-on-preflight-failure \
+            --case-delay-ms "${BUMPKIN_EVAL_CASE_DELAY_MS}" \
+            --min-pass-rate 0.75 \
+            --output-json artifacts/eval-canary.json
+          PYTHONPATH=src python scripts/ci/run_rollout_gates.py \
+            --eval-json artifacts/eval-canary.json \
+            --require-preflight-status ok \
+            --expect-evaluated-count 4 \
+            --min-pass-rate 0.75
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          payload = json.loads(Path("artifacts/eval-canary.json").read_text())
+          preflight = payload.get("preflight", {})
+          metrics = payload.get("metrics", {})
+          evaluated = int(metrics.get("evaluated_fixture_count", 0))
+          pass_rate = float(metrics.get("overall_pass_rate", 0.0))
+          manual_review_rate = float(metrics.get("manual_review_rate", 0.0) or 0.0)
+          unexpected_manual_review_rate = float(
+              metrics.get("unexpected_manual_review_rate", manual_review_rate) or 0.0
+          )
+          critical_missing_proofs_total = int(metrics.get("critical_missing_proofs_total", 0) or 0)
+          unexpected_critical_missing_proofs_total = int(
+              metrics.get(
+                  "unexpected_critical_missing_proofs_total",
+                  critical_missing_proofs_total,
+              ) or 0
+          )
+          contradiction_count = int(metrics.get("contradiction_count", 0) or 0)
+
+          if str(preflight.get("status", "")).strip().lower() != "ok":
+              reason = str(preflight.get("failure_reason") or preflight.get("reason") or "unknown").strip()
+              print(f"::error::Canary provider preflight degraded: {reason}")
+              if not preflight.get("continued"):
+                  print("::error::Canary did not continue after degraded preflight.")
+              raise SystemExit(1)
+          if evaluated != 4:
+              raise SystemExit(f"Expected 4 evaluated canary fixtures, got {evaluated}.")
+          if pass_rate < 0.75:
+              raise SystemExit(f"Canary pass rate below threshold: {pass_rate:.2f} < 0.75")
+          if unexpected_manual_review_rate > 0.20:
+              raise SystemExit(
+                  "Canary strict gate failed: unexpected_manual_review_rate "
+                  f"{unexpected_manual_review_rate:.2%} exceeds 20%."
+              )
+          if unexpected_critical_missing_proofs_total > 0:
+              raise SystemExit(
+                  "Canary strict gate failed: unexpected_critical_missing_proofs_total must be 0."
+              )
+          if contradiction_count > 0:
+              raise SystemExit("Canary strict gate failed: contradiction_count must be 0.")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eval-canary-js
+          path: artifacts/eval-canary.json
+          if-no-files-found: ignore
+
+  eval-batches-js:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    needs: [eval-preflight-js]
+    if: github.event.inputs.run_batch_eval == 'true' && needs.eval-preflight-js.outputs.has_token == 'true' && needs.eval-preflight-js.outputs.preflight_ok == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        batch_index: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements-dev.txt
+      - env:
+          MODELS_TOKEN: ${{ secrets.MODELS_TOKEN }}
+          GITHUB_MODELS_TOKEN: ${{ secrets.GITHUB_MODELS_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+          BUMPKIN_PROVIDER: auto
+          BUMPKIN_MODELS_ENDPOINT: ${{ secrets.BUMPKIN_MODELS_ENDPOINT || vars.BUMPKIN_MODELS_ENDPOINT || 'https://openrouter.ai/api/v1/chat/completions' }}
+          BUMPKIN_MODEL: ${{ secrets.BUMPKIN_MODEL || vars.BUMPKIN_MODEL || 'nvidia/nemotron-3-super-120b-a12b:free' }}
+          BUMPKIN_EVAL_CASE_DELAY_MS: 4000
+          BUMPKIN_MODEL_CALL_MIN_INTERVAL_MS: 4000
+        run: |
+          mkdir -p artifacts
+          PYTHONPATH=src python src/eval.py \
+            --mode auto \
+            --language-group javascript-typescript \
+            --max-retries 3 \
+            --case-delay-ms "${BUMPKIN_EVAL_CASE_DELAY_MS}" \
+            --batch-size 6 \
+            --batch-index ${{ matrix.batch_index }} \
+            --output-json artifacts/js-batch-${{ matrix.batch_index }}.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: js-batch-${{ matrix.batch_index }}
+          path: artifacts/js-batch-${{ matrix.batch_index }}.json
+          if-no-files-found: ignore
+
+  eval-aggregate-js:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    needs: [eval-preflight-js, eval-batches-js]
+    if: github.event.inputs.run_batch_eval == 'true' && needs.eval-preflight-js.outputs.has_token == 'true' && needs.eval-preflight-js.outputs.preflight_ok == 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements-dev.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: js-batch-*
+          merge-multiple: true
+          path: artifacts/js
+      - name: Validate aggregate batch payloads
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          root = pathlib.Path("artifacts/js")
+          paths = sorted(root.glob("*.json"))
+          if not paths:
+              print("No batch JSON artifacts were downloaded to artifacts/js.")
+              sys.exit(1)
+
+          total_results = 0
+          malformed = []
+          for path in paths:
+              try:
+                  payload = json.loads(path.read_text())
+              except Exception as exc:
+                  malformed.append(f"{path}: invalid JSON ({exc})")
+                  continue
+
+              rows = payload.get("results")
+              if not isinstance(rows, list):
+                  malformed.append(f"{path}: missing list field `results`")
+                  continue
+              total_results += len(rows)
+
+          if malformed:
+              print("Malformed aggregate artifacts detected:")
+              for item in malformed:
+                  print(f"- {item}")
+              sys.exit(1)
+
+          print(f"Aggregate artifact check: files={len(paths)} result_rows={total_results}")
+          if total_results == 0:
+              print("Aggregate artifact check failed: zero evaluated fixture rows found.")
+              sys.exit(1)
+          PY
+      - run: |
+          PYTHONPATH=src python src/eval.py \
+            --aggregate-json-dir artifacts/js \
+            --language-group javascript-typescript \
+            --prompt-gate-baseline test-diffs/baselines/js-ts-v1.json \
+            --strict

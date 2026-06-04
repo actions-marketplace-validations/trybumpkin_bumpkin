@@ -65,7 +65,7 @@ def test_js_ts_prompt_gate_baseline_is_locked() -> None:
 
 def test_ci_eval_canary_contract_is_locked() -> None:
     repo_root = _repo_root()
-    ci_text = (repo_root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    ci_text = (repo_root / ".github" / "workflows" / "evals.yml").read_text(encoding="utf-8")
 
     assert "--prompt-gate-baseline test-diffs/baselines/js-ts-v1.json \\" in ci_text
     assert "if evaluated != 4:" in ci_text
@@ -103,7 +103,7 @@ def test_multilanguage_baselines_exist_and_match_language_group() -> None:
 
 def test_ci_multilanguage_lane_contract_is_present() -> None:
     repo_root = _repo_root()
-    ci_text = (repo_root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    ci_text = (repo_root / ".github" / "workflows" / "evals.yml").read_text(encoding="utf-8")
 
     assert "eval-language-lanes:" in ci_text
     assert "language_group: python" in ci_text

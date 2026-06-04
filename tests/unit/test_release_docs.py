@@ -7,6 +7,7 @@ def test_readme_frames_release_scoped_flow_as_primary_story() -> None:
     repo_root = Path(__file__).resolve().parents[2]
     readme = (repo_root / "README.md").read_text(encoding="utf-8")
 
+    assert "assets/bumpkinb-wide.png" in readme
     assert "no always-on server required" in readme
     assert "no Bumpkin database required" in readme
     assert "release_preview" in readme

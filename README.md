@@ -1,5 +1,7 @@
 # Bumpkin
 
+![Bumpkin banner](assets/bumpkinb-wide.png)
+
 Bumpkin is a release-scoped semantic versioning assistant for GitHub.
 
 It does its work when you are cutting a release:

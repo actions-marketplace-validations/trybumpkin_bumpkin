@@ -4,11 +4,7 @@
 
 Bumpkin is a release assistant that analyzes merged PRs, determines version bumps, and writes release notes - no commit conventions required.
 
-The public OSS path is GitHub-native and on-demand.
-
-- no always-on server required
-- no Bumpkin database required
-- no per-PR comment spam required
+Bumpkin is built around release-scoped GitHub Actions.
 
 ## What it does
 

@@ -9,8 +9,7 @@ def test_readme_frames_release_scoped_flow_as_primary_story() -> None:
 
     assert "assets/bumpkinb-wide.png" in readme
     assert "release assistant" in readme
-    assert "no always-on server required" in readme
-    assert "no Bumpkin database required" in readme
+    assert "release-scoped GitHub Actions" in readme
     assert "release_preview" in readme
     assert "release_publish" in readme
     assert "python -m bumpkin.release_job" in readme

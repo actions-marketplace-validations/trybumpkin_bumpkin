@@ -1,0 +1,13 @@
+@@
+ - a branch protection rule for the main branch to require approval (will be
+   handled via renovate-approve)
+ This repository is also used to generate controlled pull-request history for Bumpkin evaluation.
++
++Noise-control PRs (docs/config only) are used here to validate that release recommendations stay PATCH when public runtime APIs are unchanged.
+@@
+ {
+   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
++  "description": "Renovate policy for the private Bumpkin fixture repository.",
+   "extends": ["config:base"],
+   "prHourlyLimit": 0,
+   "schedule": ["after 10am on monday"],

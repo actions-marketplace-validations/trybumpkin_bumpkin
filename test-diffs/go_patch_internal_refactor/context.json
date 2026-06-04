@@ -1,0 +1,5 @@
+{
+  "language": "go",
+  "category": "patch_internal_refactor",
+  "note": "Unexported go helper update."
+}

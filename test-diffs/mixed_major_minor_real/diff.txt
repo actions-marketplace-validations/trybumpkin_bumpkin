@@ -1,0 +1,29 @@
+-import { returnExcitedGreeting, returnGreeting, returnPersonalGreeting } from "./hello";
++import { returnExcitedGreeting, returnGreeting, returnGreetingForPerson } from "./hello";
+ 
+ describe("unit tests and code side by side", () => {
+   describe("when using the returnGreeting function", () => {
+@@
+-  describe("when using the returnPersonalGreeting function", () => {
++  describe("when using the returnGreetingForPerson function", () => {
+     it("returns a greeting for the provided name", () => {
+-      expect(returnPersonalGreeting("Anas")).toBe("hello Anas");
++      expect(returnGreetingForPerson("Anas")).toBe("hello Anas");
+     });
+   });
+@@
+-const buildGreeting = (name: string, punctuation = ""): string => {
++const formatGreeting = (name: string, punctuation = ""): string => {
+   return `${HELLO_PREFIX} ${name}${punctuation}`;
+ };
+@@
+-export const returnPersonalGreeting = (name: string): string => {
+-  return buildGreeting(name);
++export const returnGreetingForPerson = (name: string): string => {
++  return formatGreeting(name);
+ };
+ 
+ export const returnExcitedGreeting = (name: string): string => {
+-  return buildGreeting(name, "!");
++  return formatGreeting(name, "!");
+ };

@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "patch_docs_only",
+  "note": "CI workflow metadata/comments are operational-only and should remain NO_BUMP."
+}

@@ -1,0 +1,2 @@
+- export function login(user: string, pass: string) {}
++ export function login(credentials: { user: string; pass: string }) {}

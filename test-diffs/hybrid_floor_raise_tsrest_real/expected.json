@@ -1,0 +1,10 @@
+{
+  "label": "MINOR",
+  "classification_source": "hybrid",
+  "findings": [
+    {
+      "rule": "export_symbol_added",
+      "severity": "MINOR"
+    }
+  ]
+}

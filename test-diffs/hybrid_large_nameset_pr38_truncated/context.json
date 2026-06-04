@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "hybrid_large_real_truncated",
+  "note": "Real nameset PR #38 merged diff using production token cap (truncated); expected SemVer remains MINOR with non-breaking export additions."
+}

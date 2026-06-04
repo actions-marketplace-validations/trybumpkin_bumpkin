@@ -1,0 +1,14 @@
+{
+  "label": "MAJOR",
+  "classification_source": "deterministic-findings",
+  "findings": [
+    {
+      "rule": "export_symbol_removed",
+      "severity": "MAJOR"
+    },
+    {
+      "rule": "export_symbol_added",
+      "severity": "MINOR"
+    }
+  ]
+}

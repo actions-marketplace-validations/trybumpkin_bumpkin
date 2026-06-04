@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "minor_export_added",
+  "note": "Adding a new exported constant should be MINOR."
+}

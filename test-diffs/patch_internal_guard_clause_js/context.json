@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "patch_internal_refactor",
+  "note": "Internal control-flow refactor with no exported API change should remain PATCH."
+}

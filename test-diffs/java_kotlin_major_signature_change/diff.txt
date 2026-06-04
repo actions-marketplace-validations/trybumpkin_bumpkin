@@ -1,0 +1,2 @@
+- public String parseUser(String user) { return user; }
++ public String parseUser(String user, boolean strict) { return user; }

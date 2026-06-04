@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "patch_internal_refactor",
+  "note": "Non-exported helper changes remain PATCH."
+}

@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "patch_docs_only",
+  "note": "Real merged PR from the private fixture repo. Docs and config metadata changes should remain NO_BUMP because runtime public API is unchanged."
+}

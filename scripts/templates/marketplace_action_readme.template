@@ -1,0 +1,78 @@
+# Bumpkin Action
+
+Bumpkin is a release-scoped semantic versioning Action for GitHub.
+
+It is designed to run when you are cutting a release:
+
+1. find the previous tag
+2. scan merged PRs since that tag
+3. recommend the semantic version bump
+4. write release notes
+5. optionally publish the tag and GitHub Release
+
+## Supported operations
+
+- `pr_recommendation`
+- `release_preview`
+- `release_publish`
+
+## Example workflow
+
+```yaml
+name: Bumpkin Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        required: true
+        default: release_preview
+        type: choice
+        options:
+          - release_preview
+          - release_publish
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  bumpkin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: bumpkin
+        uses: trybumpkin/bumpkin-action@v1
+        with:
+          operation: ${{ inputs.operation }}
+          provider: auto
+          model: ${{ vars.BUMPKIN_MODEL || 'openai/gpt-4.1-mini' }}
+          fallback_model: ${{ vars.BUMPKIN_FALLBACK_MODEL || 'openai/gpt-4o-mini' }}
+          models_endpoint: ${{ vars.BUMPKIN_MODELS_ENDPOINT || '' }}
+          models_token: ${{ secrets.MODELS_TOKEN }}
+```
+
+## Required secret
+
+- `MODELS_TOKEN`
+
+## Optional variables
+
+- `BUMPKIN_MODEL`
+- `BUMPKIN_FALLBACK_MODEL`
+- `BUMPKIN_MODELS_ENDPOINT`
+
+## Outputs
+
+- `release_status`
+- `release_previous_tag`
+- `release_next_tag`
+- `release_label`
+- `release_pr_count`
+- `release_notes_path`
+- `release_target_sha`
+- `release_url`
+- `tag_url`

@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "hybrid_model_path",
+  "note": "Real merged TS/JS diff used to verify model participation in hybrid adjudication on non-breaking deterministic findings."
+}

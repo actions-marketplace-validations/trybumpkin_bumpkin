@@ -1,0 +1,2 @@
+- private String normalizeUser(String value) { return value; }
++ private String normalizeUser(String value) { return value.trim(); }

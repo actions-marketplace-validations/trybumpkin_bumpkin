@@ -1,0 +1,51 @@
+{
+  "name": "bumpkin-app",
+  "description": "GitHub App webhook runtime for Bumpkin",
+  "repository": "https://github.com/trybumpkin/bumpkin",
+  "buildpacks": [
+    {
+      "url": "heroku-community/apt"
+    },
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "env": {
+    "BUMPKIN_APP_MODE": {
+      "description": "App mode. Use `shell` to dispatch the existing release workflow without a Bumpkin database.",
+      "value": "shell"
+    },
+    "BUMPKIN_APP_WEBHOOK_SECRET": {
+      "description": "GitHub App webhook secret from the app settings page"
+    },
+    "BUMPKIN_APP_RELEASE_WORKFLOW_FILE": {
+      "description": "Workflow file the App shell should dispatch for release preview/publish.",
+      "value": ".github/workflows/bumpkin.yml"
+    },
+    "BUMPKIN_APP_GITHUB_APP_ID": {
+      "description": "Numeric GitHub App ID"
+    },
+    "BUMPKIN_APP_GITHUB_PRIVATE_KEY": {
+      "description": "GitHub App private key PEM content. Paste the full key, preserving newlines or using \\n escapes."
+    },
+    "BUMPKIN_APP_PROVIDER_TOKEN": {
+      "description": "Optional fallback token for dispatching workflows if GitHub App credentials are not used."
+    },
+    "MODELS_TOKEN": {
+      "description": "Model provider token used for merge recommendations"
+    },
+    "BUMPKIN_MODELS_ENDPOINT": {
+      "description": "OpenAI-compatible model endpoint used by the recommendation runner"
+    },
+    "BUMPKIN_MODEL": {
+      "description": "Model name for recommendation analysis"
+    },
+    "BUMPKIN_APP_BUMP_MISMATCH_POLICY": {
+      "description": "How /bump behaves when the requested level differs from the stored recommendation",
+      "value": "allow_with_warning"
+    },
+    "DATABASE_URL": {
+      "description": "Legacy mode only. Optional Postgres connection string for the older DB-backed control plane."
+    }
+  }
+}

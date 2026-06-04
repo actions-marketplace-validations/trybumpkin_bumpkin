@@ -1,0 +1,2 @@
+- func ParseUser(user string) string { return user }
++ func ParseUser(user string, strict bool) string { return user }

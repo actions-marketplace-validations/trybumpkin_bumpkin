@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "hybrid_floor_raise",
+  "note": "Real merged ts-rest diff: deterministic non-breaking finding sets the minimum floor and hybrid adjudication keeps final MINOR."
+}

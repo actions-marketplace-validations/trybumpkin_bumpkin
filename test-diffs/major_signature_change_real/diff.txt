@@ -1,0 +1,18 @@
+@@
+ 
+   describe("when using the returnQuestionGreeting function", () => {
+     it("returns a question-style greeting for the provided name", () => {
+-      expect(returnQuestionGreeting("Anas")).toBe("hello Anas?");
++      expect(returnQuestionGreeting({ name: "Anas" })).toBe("hello Anas?");
+     });
+   });
+@@
+ export const returnExcitedGreeting = (name: string): string => {
+   return formatGreeting(name, EXCITED_PUNCTUATION);
+ };
+ 
+-export const returnQuestionGreeting = (name: string): string => {
+-  return formatGreeting(name, QUESTION_PUNCTUATION);
++export const returnQuestionGreeting = (input: { name: string }): string => {
++  return formatGreeting(input.name, QUESTION_PUNCTUATION);
+ };

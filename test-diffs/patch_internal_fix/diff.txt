@@ -1,0 +1,2 @@
+- const buildSessionToken = (user) => user.account.token.trim();
++ const buildSessionToken = (user) => user?.account?.token?.trim() ?? "";

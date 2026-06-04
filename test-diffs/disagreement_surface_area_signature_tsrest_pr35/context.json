@@ -1,0 +1,7 @@
+{
+  "language": "javascript-typescript",
+  "category": "disagreement_tuning_target",
+  "surface_area": ["libs/ts-rest/core/src/lib/bumpkin-fixture.ts"],
+  "tuning_target": true,
+  "note": "Real merged ts-rest PR #35 disagreement target. Maintainer expectation: MAJOR; model returned PATCH."
+}

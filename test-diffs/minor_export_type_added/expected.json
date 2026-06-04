@@ -1,0 +1,9 @@
+{
+  "label": "MINOR",
+  "findings": [
+    {
+      "rule": "export_symbol_added",
+      "severity": "MINOR"
+    }
+  ]
+}

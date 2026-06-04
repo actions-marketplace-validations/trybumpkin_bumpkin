@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "mixed_major_minor",
+  "note": "Mixed diffs take the highest-impact SemVer label present."
+}

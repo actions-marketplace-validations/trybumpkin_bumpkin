@@ -1,0 +1,19 @@
+-import { returnHelloWorld, returnPersonalGreeting } from "./hello";
++import { returnGreeting, returnPersonalGreeting } from "./hello";
+ 
+ describe("unit tests and code side by side", () => {
+-  describe("when using the returnHelloWorld function", () => {
++  describe("when using the returnGreeting function", () => {
+     it("returns 'hello world'", () => {
+-      console.log("testing returnHelloWorld()");
+-      expect(returnHelloWorld()).toBe("hello world");
++      console.log("testing returnGreeting()");
++      expect(returnGreeting()).toBe("hello world");
+       console.log("Done");
+     });
+   });
+@@
+-export const returnHelloWorld = (): typeof HELLO_WORLD => {
++export const returnGreeting = (): typeof HELLO_WORLD => {
+   return HELLO_WORLD;
+ };

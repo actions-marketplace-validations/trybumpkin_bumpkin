@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Env
+.env
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Local eval outputs
+artifacts/
+
+# Docs
+docs/
+*.md
+!README.md
+!CHANGELOG.md
+!SECURITY.md

@@ -1,0 +1,2 @@
+- pub fn parse_user(user: &str) -> String { user.to_string() }
++ pub fn parse_user(user: &str, strict: bool) -> String { user.to_string() }

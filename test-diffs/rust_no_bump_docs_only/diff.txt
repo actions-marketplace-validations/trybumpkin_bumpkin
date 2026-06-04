@@ -1,0 +1,3 @@
+diff --git a/docs/rust.md b/docs/rust.md
++## Notes
++Documentation-only update.

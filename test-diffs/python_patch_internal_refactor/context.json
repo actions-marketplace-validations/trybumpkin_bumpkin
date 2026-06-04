@@ -1,0 +1,5 @@
+{
+  "language": "python",
+  "category": "patch_internal_refactor",
+  "note": "Internal underscore helper refactor."
+}

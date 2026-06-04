@@ -1,0 +1,5 @@
+{
+  "language": "rust",
+  "category": "no_bump_docs_only",
+  "note": "Docs-only rust lane fixture."
+}

@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "hybrid_large_real_full",
+  "note": "Real nameset PR #38 merged diff without truncation; expected SemVer remains MINOR with non-breaking export additions."
+}

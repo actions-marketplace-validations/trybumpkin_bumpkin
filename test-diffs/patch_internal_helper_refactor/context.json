@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "patch_internal_refactor",
+  "note": "Real merged PR from the private fixture repo. Internal helper extraction should remain PATCH when exported API signatures and behavior stay the same."
+}

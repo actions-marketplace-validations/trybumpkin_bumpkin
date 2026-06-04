@@ -1,0 +1,6 @@
+{
+  "language": "javascript-typescript",
+  "category": "disagreement_tuning_target",
+  "tuning_target": true,
+  "note": "Real merged ts-rest PR #34 disagreement target. Maintainer expectation: PATCH; model returned MAJOR."
+}

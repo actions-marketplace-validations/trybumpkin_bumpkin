@@ -1,0 +1,161 @@
+name: "Bumpkin"
+description: "Analyzes merged PRs or release batches and recommends/publishes semantic versions"
+inputs:
+  operation:
+    description: "Mode: pr_recommendation | release_preview | release_publish"
+    required: false
+    default: "pr_recommendation"
+  from_ref:
+    description: "Base git ref (optional). Defaults to latest tag or initial commit."
+    required: false
+    default: ""
+  to_ref:
+    description: "Target git ref (optional). Defaults to GITHUB_SHA or HEAD."
+    required: false
+    default: ""
+  api_key:
+    description: "Legacy API key input. Unused for GitHub Models path."
+    required: false
+    default: ""
+  target_ref:
+    description: "Release target git ref or SHA. Used by release_preview and release_publish."
+    required: false
+    default: ""
+  base_tag:
+    description: "Optional previous release tag override for release_preview and release_publish."
+    required: false
+    default: ""
+  output_markdown:
+    description: "Release notes artifact path for release_preview and release_publish."
+    required: false
+    default: "artifacts/release/bumpkin-release-notes.md"
+  provider:
+    description: "Recommendation provider mode: auto | stub | github-models | openrouter"
+    required: false
+    default: "auto"
+  model:
+    description: "GitHub Models model id, e.g. openai/gpt-4.1-mini"
+    required: false
+    default: "openai/gpt-4.1-mini"
+  fallback_model:
+    description: "Optional fallback GitHub Models model id when primary model is unavailable."
+    required: false
+    default: ""
+  models_endpoint:
+    description: "Optional chat-completions endpoint override (for example OpenRouter)."
+    required: false
+    default: ""
+  models_token:
+    description: "Optional token for model API. Supports GitHub Models and OpenRouter."
+    required: false
+    default: ""
+  token_cap:
+    description: "Approximate token cap for diff payload."
+    required: false
+    default: "6000"
+  use_difftastic:
+    description: "Optional syntax-aware diff preprocessor toggle (true/false)."
+    required: false
+    default: ""
+  max_retries:
+    description: "Max retries for model API failures or rate limits."
+    required: false
+    default: "3"
+  request_timeout:
+    description: "Per-request model API timeout in seconds."
+    required: false
+    default: "45"
+  model_call_min_interval_ms:
+    description: "Minimum delay between outbound model calls to avoid provider rate limits."
+    required: false
+    default: "4000"
+outputs:
+  release_status:
+    description: "Release workflow status when operation is release_preview or release_publish."
+    value: ${{ steps.bumpkin.outputs.release_status }}
+  release_previous_tag:
+    description: "Resolved previous release tag for release operations."
+    value: ${{ steps.bumpkin.outputs.release_previous_tag }}
+  release_next_tag:
+    description: "Computed next release tag for release operations."
+    value: ${{ steps.bumpkin.outputs.release_next_tag }}
+  release_label:
+    description: "Aggregate semantic version label for release operations."
+    value: ${{ steps.bumpkin.outputs.release_label }}
+  release_pr_count:
+    description: "Number of merged PRs included in the release batch."
+    value: ${{ steps.bumpkin.outputs.release_pr_count }}
+  release_notes_path:
+    description: "Path to the generated release notes artifact."
+    value: ${{ steps.bumpkin.outputs.release_notes_path }}
+  release_target_sha:
+    description: "Resolved release target SHA."
+    value: ${{ steps.bumpkin.outputs.release_target_sha }}
+  release_url:
+    description: "Published GitHub Release URL when operation is release_publish."
+    value: ${{ steps.bumpkin.outputs.release_url }}
+  tag_url:
+    description: "Published tag URL when operation is release_publish."
+    value: ${{ steps.bumpkin.outputs.tag_url }}
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    - shell: bash
+      run: pip install -r "${{ github.action_path }}/requirements.txt"
+    - id: bumpkin
+      shell: bash
+      env:
+        ANTHROPIC_API_KEY: ${{ inputs.api_key }}
+        MODELS_TOKEN: ${{ inputs.models_token }}
+        GITHUB_MODELS_TOKEN: ${{ inputs.models_token }}
+        GITHUB_TOKEN: ${{ github.token }}
+        PYTHONPATH: ${{ github.action_path }}/src
+        BUMPKIN_PROVIDER: ${{ inputs.provider }}
+        BUMPKIN_MODEL: ${{ inputs.model }}
+        BUMPKIN_FALLBACK_MODEL: ${{ inputs.fallback_model }}
+        BUMPKIN_MODELS_ENDPOINT: ${{ inputs.models_endpoint }}
+        BUMPKIN_MODEL_CALL_MIN_INTERVAL_MS: ${{ inputs.model_call_min_interval_ms }}
+        BUMPKIN_USE_DIFFTASTIC: ${{ inputs.use_difftastic }}
+        BUMPKIN_REQUEST_TIMEOUT: ${{ inputs.request_timeout }}
+      run: |
+        set -euo pipefail
+
+        case "${{ inputs.operation }}" in
+          release_preview)
+            python "${{ github.action_path }}/src/release_job.py" \
+              --operation preview \
+              --repository "${{ github.repository }}" \
+              --github-token "${{ github.token }}" \
+              --target-ref "${{ inputs.target_ref }}" \
+              --base-tag "${{ inputs.base_tag }}" \
+              --output-markdown "${{ inputs.output_markdown }}" \
+              --request-timeout "${{ inputs.request_timeout }}"
+            ;;
+          release_publish)
+            python "${{ github.action_path }}/src/release_job.py" \
+              --operation publish \
+              --repository "${{ github.repository }}" \
+              --github-token "${{ github.token }}" \
+              --target-ref "${{ inputs.target_ref }}" \
+              --base-tag "${{ inputs.base_tag }}" \
+              --output-markdown "${{ inputs.output_markdown }}" \
+              --request-timeout "${{ inputs.request_timeout }}"
+            ;;
+          pr_recommendation)
+            python "${{ github.action_path }}/src/main.py" \
+              --from-ref "${{ inputs.from_ref }}" \
+              --to-ref "${{ inputs.to_ref }}" \
+              --fallback-model "${{ inputs.fallback_model }}" \
+              --use-difftastic "${{ inputs.use_difftastic }}" \
+              --token-cap "${{ inputs.token_cap }}" \
+              --max-retries "${{ inputs.max_retries }}" \
+              --request-timeout "${{ inputs.request_timeout }}"
+            ;;
+          *)
+            echo "Unsupported Bumpkin operation: ${{ inputs.operation }}" >&2
+            exit 1
+            ;;
+        esac

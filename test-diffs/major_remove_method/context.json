@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "major_export_removed",
+  "note": "Removing an exported function is a breaking public API change."
+}

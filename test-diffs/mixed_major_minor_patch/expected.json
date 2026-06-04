@@ -1,0 +1,13 @@
+{
+  "label": "MAJOR",
+  "findings": [
+    {
+      "rule": "export_symbol_added",
+      "severity": "MINOR"
+    },
+    {
+      "rule": "export_signature_requiredness_tightening",
+      "severity": "MAJOR"
+    }
+  ]
+}

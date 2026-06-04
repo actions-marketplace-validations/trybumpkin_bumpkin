@@ -1,0 +1,7 @@
+diff --git a/src/internal.ts b/src/internal.ts
+index 1111111..2222222 100644
+--- a/src/internal.ts
++++ b/src/internal.ts
+@@
+-export const timeoutMs = 3000;
++export const timeoutMs = 2500;

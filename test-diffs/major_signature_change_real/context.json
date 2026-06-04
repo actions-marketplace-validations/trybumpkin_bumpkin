@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "major_signature_change",
+  "note": "Real merged PR from the private fixture repo. Changing an exported function parameter from string to object is a breaking signature change."
+}

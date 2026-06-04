@@ -1,0 +1,67 @@
+name: Bumpkin Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Choose whether to preview or publish the next release"
+        required: true
+        default: release_preview
+        type: choice
+        options:
+          - release_preview
+          - release_publish
+      base_tag:
+        description: "Optional previous tag override"
+        required: false
+        default: ""
+
+concurrency:
+  group: bumpkin-release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: bumpkin
+        name: Run Bumpkin release workflow
+        uses: ./
+        with:
+          operation: ${{ inputs.operation }}
+          base_tag: ${{ inputs.base_tag }}
+          provider: auto
+          model: ${{ secrets.BUMPKIN_MODEL || vars.BUMPKIN_MODEL || 'openai/gpt-4.1-mini' }}
+          fallback_model: ${{ secrets.BUMPKIN_FALLBACK_MODEL || vars.BUMPKIN_FALLBACK_MODEL || 'openai/gpt-4o-mini' }}
+          models_endpoint: ${{ secrets.BUMPKIN_MODELS_ENDPOINT || vars.BUMPKIN_MODELS_ENDPOINT || '' }}
+          models_token: ${{ secrets.MODELS_TOKEN }}
+          request_timeout: "45"
+          model_call_min_interval_ms: "4000"
+
+      - name: Upload release notes artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bumpkin-release-notes
+          path: ${{ steps.bumpkin.outputs.release_notes_path }}
+          if-no-files-found: error
+
+      - name: Print release summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "status=${{ steps.bumpkin.outputs.release_status }}"
+          echo "previous_tag=${{ steps.bumpkin.outputs.release_previous_tag }}"
+          echo "next_tag=${{ steps.bumpkin.outputs.release_next_tag }}"
+          echo "release_label=${{ steps.bumpkin.outputs.release_label }}"
+          echo "release_pr_count=${{ steps.bumpkin.outputs.release_pr_count }}"
+          echo "release_url=${{ steps.bumpkin.outputs.release_url }}"
+          echo "tag_url=${{ steps.bumpkin.outputs.tag_url }}"

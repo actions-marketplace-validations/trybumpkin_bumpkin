@@ -1,0 +1,5 @@
+{
+  "language": "rust",
+  "category": "minor_export_added",
+  "note": "New pub rust function added."
+}

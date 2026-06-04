@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "mixed_major_minor",
+  "note": "Real merged ts-rest PR #27: removed export + added replacement export + internal refactor should aggregate to MAJOR."
+}

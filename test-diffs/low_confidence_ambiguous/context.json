@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "ambiguous_public_surface",
+  "note": "Confidence should stay low when the public-vs-internal boundary is unclear."
+}

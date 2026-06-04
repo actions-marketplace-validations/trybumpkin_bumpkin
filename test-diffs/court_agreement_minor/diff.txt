@@ -1,0 +1,12 @@
+diff --git a/src/api.ts b/src/api.ts
+index 1111111..2222222 100644
+--- a/src/api.ts
++++ b/src/api.ts
+@@
+ export function ping(): string {
+   return "pong";
+ }
++
++export function healthcheck(): boolean {
++  return true;
++}

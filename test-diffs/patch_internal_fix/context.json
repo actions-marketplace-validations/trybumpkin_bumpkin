@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "patch_internal_refactor",
+  "note": "Internal runtime bugfixes should stay PATCH when no exported API changes."
+}

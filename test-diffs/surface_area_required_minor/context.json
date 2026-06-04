@@ -1,0 +1,6 @@
+{
+  "language": "javascript-typescript",
+  "surface_area": ["src/billing/public.ts"],
+  "category": "surface_area_required",
+  "note": "Surface-area hints should reinforce that this exported constant belongs to public API."
+}

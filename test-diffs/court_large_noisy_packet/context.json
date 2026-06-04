@@ -1,0 +1,6 @@
+{
+  "language": "javascript-typescript",
+  "category": "court_large_noisy",
+  "surface_area": ["src/api.ts"],
+  "note": "Large-ish mixed diff used to validate bounded case-file behavior."
+}

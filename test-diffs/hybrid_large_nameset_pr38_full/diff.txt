@@ -1,0 +1,458 @@
+diff --git a/.github/workflows/bumpkin.yml b/.github/workflows/bumpkin.yml
+index f00ab19..76bcae2 100644
+--- a/.github/workflows/bumpkin.yml
++++ b/.github/workflows/bumpkin.yml
+@@ -23,7 +23,7 @@ jobs:
+         uses: actions/checkout@v6
+         with:
+           repository: trybumpkin/bumpkin
+-          ref: 0.14.0
++          ref: 0.15.4
+           token: ${{ secrets.BUMPKIN_ACTION_TOKEN }}
+           path: .github/actions/bumpkin
+       - name: Run Bumpkin
+diff --git a/.gitleaksignore b/.gitleaksignore
+new file mode 100644
+index 0000000..3cae468
+--- /dev/null
++++ b/.gitleaksignore
+@@ -0,0 +1 @@
++793c1e0c5cbc6aa6019d1e37b8b70f6919ece35a:tests/worker_phase3.test.js:generic-api-key:215
+diff --git a/supabase/functions/_shared/request-body.ts b/supabase/functions/_shared/request-body.ts
+new file mode 100644
+index 0000000..c8cbaaf
+--- /dev/null
++++ b/supabase/functions/_shared/request-body.ts
+@@ -0,0 +1,40 @@
++export class PayloadTooLargeError extends Error {
++  constructor() {
++    super("payload_too_large");
++    this.name = "PayloadTooLargeError";
++  }
++}
++
++export async function readRequestBodyWithLimit(
++  req: Request,
++  maxBytes: number,
++): Promise<string> {
++  const reader = req.body?.getReader();
++  if (!reader) {
++    const body = await req.text();
++    const size = new TextEncoder().encode(body).byteLength;
++    if (size > maxBytes) throw new PayloadTooLargeError();
++    return body;
++  }
++
++  const decoder = new TextDecoder();
++  let body = "";
++  let size = 0;
++  while (true) {
++    const { done, value } = await reader.read();
++    if (done) break;
++    if (!value) continue;
++    size += value.byteLength;
++    if (size > maxBytes) {
++      try {
++        await reader.cancel();
++      } catch {
++        // Reader cancellation is best-effort once limits are breached.
++      }
++      throw new PayloadTooLargeError();
++    }
++    body += decoder.decode(value, { stream: true });
++  }
++  body += decoder.decode();
++  return body;
++}
+diff --git a/supabase/functions/polar-webhook/index.ts b/supabase/functions/polar-webhook/index.ts
+index bad4dc7..ab96d66 100644
+--- a/supabase/functions/polar-webhook/index.ts
++++ b/supabase/functions/polar-webhook/index.ts
+@@ -5,6 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0"
+ // @ts-ignore: Deno runtime import
+ import { validateEvent } from "npm:@polar-sh/sdk/webhooks"
+ import { sendReceiptEmail } from "../_shared/emails.ts"
++import { PayloadTooLargeError, readRequestBodyWithLimit } from "../_shared/request-body.ts"
+ 
+ const MAX_WEBHOOK_BODY_BYTES = 256 * 1024;
+ 
+@@ -151,15 +152,18 @@ serve(async (req: Request) => {
+       });
+     }
+ 
+-    const body = await req.text()
+-    const bodyBytes = new TextEncoder().encode(body).byteLength;
+-    if (bodyBytes > MAX_WEBHOOK_BODY_BYTES) {
+-      return new Response(JSON.stringify({ ok: false, error: "payload_too_large" }), {
+-        status: 413,
+-        headers: { "Content-Type": "application/json" },
+-      });
++    let body = "";
++    try {
++      body = await readRequestBodyWithLimit(req, MAX_WEBHOOK_BODY_BYTES);
++    } catch (error) {
++      if (error instanceof PayloadTooLargeError) {
++        return new Response(JSON.stringify({ ok: false, error: "payload_too_large" }), {
++          status: 413,
++          headers: { "Content-Type": "application/json" },
++        });
++      }
++      throw error;
+     }
+-
+     if (!readEnvBool("POLAR_WEBHOOK_ENABLED", true)) {
+       return new Response(
+         JSON.stringify({ ok: true, skipped: true, reason: "webhook_disabled" }),
+diff --git a/ui/src/lib/sentry-tunnel.ts b/ui/src/lib/sentry-tunnel.ts
+new file mode 100644
+index 0000000..d42894e
+--- /dev/null
++++ b/ui/src/lib/sentry-tunnel.ts
+@@ -0,0 +1,23 @@
++import { buildEngineApiUrl } from "./engine-api";
++
++const TUNNEL_TOKEN_HEADER = "X-Nameset-Tunnel-Token";
++
++export type SentryTunnelConfig = {
++  tunnel?: string;
++  transportOptions?: {
++    headers: Record<string, string>;
++  };
++};
++
++export function buildSentryTunnelConfig(rawToken: string | null | undefined): SentryTunnelConfig {
++  const token = String(rawToken || "").trim();
++  if (!token) return {};
++  return {
++    tunnel: buildEngineApiUrl("/v1/sentry-tunnel"),
++    transportOptions: {
++      headers: {
++        [TUNNEL_TOKEN_HEADER]: token,
++      },
++    },
++  };
++}
+diff --git a/ui/src/main.tsx b/ui/src/main.tsx
+index 75fdc2c..358c0ca 100644
+--- a/ui/src/main.tsx
++++ b/ui/src/main.tsx
+@@ -4,14 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+ import './index.css'
+ import { App } from './App.tsx'
+ import * as Sentry from "@sentry/react";
+-import { buildEngineApiUrl } from './lib/engine-api';
+ import { getSentryDsn, getSentryTunnelToken } from './lib/sentry-config';
++import { buildSentryTunnelConfig } from './lib/sentry-tunnel';
+ 
+ const sentryDsn = getSentryDsn();
+-const sentryTunnelToken = getSentryTunnelToken();
+-const sentryTunnelPath = sentryTunnelToken
+-  ? `/v1/sentry-tunnel?t=${encodeURIComponent(sentryTunnelToken)}`
+-  : null;
++const sentryTunnelConfig = buildSentryTunnelConfig(getSentryTunnelToken());
+ if (sentryDsn) {
+   Sentry.init({
+     dsn: sentryDsn,
+@@ -22,7 +19,7 @@ if (sentryDsn) {
+     tracesSampleRate: 1.0,
+     sendDefaultPii: false,
+     release: "nameset@0.11.0",
+-    ...(sentryTunnelPath ? { tunnel: buildEngineApiUrl(sentryTunnelPath) } : {}),
++    ...sentryTunnelConfig,
+     beforeSend(event) {
+       try {
+         const store = (window as unknown as { __NAMESET_STORE__?: { getState: () => { settings?: { privacy?: { telemetry?: boolean } } } } }).__NAMESET_STORE__;
+diff --git a/ui/src/sidepanel-entry.tsx b/ui/src/sidepanel-entry.tsx
+index 27eb71b..5e9a9e9 100644
+--- a/ui/src/sidepanel-entry.tsx
++++ b/ui/src/sidepanel-entry.tsx
+@@ -4,10 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+ import * as Sentry from "@sentry/react";
+ import { App } from './App';
+ import './index.css';
+-import { buildEngineApiUrl } from './lib/engine-api';
+-import { getSentryDsn } from './lib/sentry-config';
++import { getSentryDsn, getSentryTunnelToken } from './lib/sentry-config';
++import { buildSentryTunnelConfig } from './lib/sentry-tunnel';
+ 
+ const sentryDsn = getSentryDsn();
++const sentryTunnelConfig = buildSentryTunnelConfig(getSentryTunnelToken());
+ if (sentryDsn) {
+   Sentry.init({
+     dsn: sentryDsn,
+@@ -18,7 +19,7 @@ if (sentryDsn) {
+     tracesSampleRate: 1.0,
+     sendDefaultPii: false,
+     release: "nameset@0.11.0",
+-    tunnel: buildEngineApiUrl('/v1/sentry-tunnel'),
++    ...sentryTunnelConfig,
+     beforeSend(event) {
+       try {
+         const store = (window as unknown as { __NAMESET_STORE__?: { getState: () => { settings?: { privacy?: { telemetry?: boolean } } } } }).__NAMESET_STORE__;
+diff --git a/worker/src/core/request-body.ts b/worker/src/core/request-body.ts
+new file mode 100644
+index 0000000..c8cbaaf
+--- /dev/null
++++ b/worker/src/core/request-body.ts
+@@ -0,0 +1,40 @@
++export class PayloadTooLargeError extends Error {
++  constructor() {
++    super("payload_too_large");
++    this.name = "PayloadTooLargeError";
++  }
++}
++
++export async function readRequestBodyWithLimit(
++  req: Request,
++  maxBytes: number,
++): Promise<string> {
++  const reader = req.body?.getReader();
++  if (!reader) {
++    const body = await req.text();
++    const size = new TextEncoder().encode(body).byteLength;
++    if (size > maxBytes) throw new PayloadTooLargeError();
++    return body;
++  }
++
++  const decoder = new TextDecoder();
++  let body = "";
++  let size = 0;
++  while (true) {
++    const { done, value } = await reader.read();
++    if (done) break;
++    if (!value) continue;
++    size += value.byteLength;
++    if (size > maxBytes) {
++      try {
++        await reader.cancel();
++      } catch {
++        // Reader cancellation is best-effort once limits are breached.
++      }
++      throw new PayloadTooLargeError();
++    }
++    body += decoder.decode(value, { stream: true });
++  }
++  body += decoder.decode();
++  return body;
++}
+diff --git a/worker/src/core/state-gateway-client.ts b/worker/src/core/state-gateway-client.ts
+index b73bc81..401160c 100644
+--- a/worker/src/core/state-gateway-client.ts
++++ b/worker/src/core/state-gateway-client.ts
+@@ -12,6 +12,10 @@ export type KvPutOperation = {
+   expirationTtl?: number;
+ };
+ 
++export type KvDeleteOperation = {
++  key: string;
++};
++
+ type CounterIncrementResult = {
+   key: string;
+   previous: number;
+@@ -111,6 +115,26 @@ export async function putKvViaStateGateway(
+   };
+ }
+ 
++export async function deleteKvViaStateGateway(
++  env: Env,
++  operations: KvDeleteOperation[],
++): Promise<{ ok: boolean; status: number; error?: string }> {
++  const response = await invokeStateGateway<{ ok: true }>(env, "/kv/delete-batch", {
++    operations,
++  });
++  if (!response.ok) {
++    return {
++      ok: false,
++      status: response.status,
++      error: (response.body as { error?: string }).error || "state_gateway_error",
++    };
++  }
++  return {
++    ok: true,
++    status: response.status,
++  };
++}
++
+ export async function applyRegistryUpdateViaStateGateway(
+   env: Env,
+   payload: any,
+diff --git a/worker/src/durable/state-gateway.ts b/worker/src/durable/state-gateway.ts
+index 0d045ad..d4077a5 100644
+--- a/worker/src/durable/state-gateway.ts
++++ b/worker/src/durable/state-gateway.ts
+@@ -17,6 +17,10 @@ type KvPutOperation = {
+   expirationTtl?: number;
+ };
+ 
++type KvDeleteOperation = {
++  key: string;
++};
++
+ function parseCounter(raw: string | null): number {
+   if (!raw) return 0;
+   const parsed = Number.parseInt(raw, 10);
+@@ -24,6 +28,18 @@ function parseCounter(raw: string | null): number {
+   return parsed;
+ }
+ 
++function isValidCounterOperation(op: CounterIncrementOperation): boolean {
++  return Boolean(op && typeof op.key === "string" && Number.isFinite(op.delta));
++}
++
++function isValidKvPutOperation(op: KvPutOperation): boolean {
++  return Boolean(op && typeof op.key === "string" && typeof op.value === "string");
++}
++
++function isValidKvDeleteOperation(op: KvDeleteOperation): boolean {
++  return Boolean(op && typeof op.key === "string");
++}
++
+ function json(body: unknown, status = 200): Response {
+   return new Response(JSON.stringify(body), {
+     status,
+@@ -55,12 +71,12 @@ export class StateGateway implements DurableObject {
+         return json({ ok: false, error: "invalid_json" }, 400);
+       }
+       const operations = Array.isArray(payload?.operations) ? payload.operations : [];
++      if (operations.some((op) => !isValidCounterOperation(op))) {
++        return json({ ok: false, error: "invalid_operation" }, 400);
++      }
+       return this.state.blockConcurrencyWhile(async () => {
+         const results: Array<{ key: string; previous: number; next: number }> = [];
+         for (const op of operations) {
+-          if (!op || typeof op.key !== "string" || !Number.isFinite(op.delta)) {
+-            return json({ ok: false, error: "invalid_operation" }, 400);
+-          }
+           const previous = parseCounter(await this.env.RULES.get(op.key));
+           const next = previous + Math.trunc(op.delta);
+           await this.env.RULES.put(op.key, String(next), {
+@@ -83,11 +99,11 @@ export class StateGateway implements DurableObject {
+         return json({ ok: false, error: "invalid_json" }, 400);
+       }
+       const operations = Array.isArray(payload?.operations) ? payload.operations : [];
++      if (operations.some((op) => !isValidKvPutOperation(op))) {
++        return json({ ok: false, error: "invalid_operation" }, 400);
++      }
+       return this.state.blockConcurrencyWhile(async () => {
+         for (const op of operations) {
+-          if (!op || typeof op.key !== "string" || typeof op.value !== "string") {
+-            return json({ ok: false, error: "invalid_operation" }, 400);
+-          }
+           await this.env.RULES.put(op.key, op.value, {
+             expirationTtl:
+               Number.isFinite(op.expirationTtl) && (op.expirationTtl || 0) > 0
+@@ -99,6 +115,25 @@ export class StateGateway implements DurableObject {
+       });
+     }
+ 
++    if (url.pathname === "/kv/delete-batch") {
++      let payload: { operations?: KvDeleteOperation[] } | null = null;
++      try {
++        payload = (await request.json()) as { operations?: KvDeleteOperation[] };
++      } catch {
++        return json({ ok: false, error: "invalid_json" }, 400);
++      }
++      const operations = Array.isArray(payload?.operations) ? payload.operations : [];
++      if (operations.some((op) => !isValidKvDeleteOperation(op))) {
++        return json({ ok: false, error: "invalid_operation" }, 400);
++      }
++      return this.state.blockConcurrencyWhile(async () => {
++        for (const op of operations) {
++          await this.env.RULES.delete(op.key);
++        }
++        return json({ ok: true }, 200);
++      });
++    }
++
+     if (url.pathname === "/registry/update") {
+       let payload: { payload?: any } | null = null;
+       try {
+diff --git a/worker/src/routes/feedback.ts b/worker/src/routes/feedback.ts
+index 06aec65..27fb04f 100644
+--- a/worker/src/routes/feedback.ts
++++ b/worker/src/routes/feedback.ts
+@@ -4,7 +4,9 @@ import {
+   incrementCountersViaStateGateway,
+   putKvViaStateGateway,
+   type CounterIncrementOperation,
++  type KvDeleteOperation,
+   type KvPutOperation,
++  deleteKvViaStateGateway,
+ } from "../core/state-gateway-client";
+ 
+ type FeedbackRouteOptions = {
+@@ -74,6 +76,11 @@ async function rollbackRichEventWrites(
+   richKeys: string[],
+ ): Promise<void> {
+   if (!richKeys.length) return;
++  if (env.STATE_GATEWAY) {
++    const gatewayDeleteOps: KvDeleteOperation[] = richKeys.map((key) => ({ key }));
++    const gatewayDeleteResult = await deleteKvViaStateGateway(env, gatewayDeleteOps);
++    if (gatewayDeleteResult.ok) return;
++  }
+   await Promise.all(
+     richKeys.map(async (key) => {
+       try {
+@@ -764,11 +771,8 @@ export async function handleFeedbackIngestRoute({
+         ],
+       });
+       if (!sentCounterMutation.ok) {
+-        return deps.jsonResponse(
+-          { ok: false, error: sentCounterMutation.error },
+-          { status: 503 },
+-          corsOrigin,
+-        );
++        console.error("Feedback digest sent counter increment failed", sentCounterMutation.error);
++        continue;
+       }
+       const previousSent = sentCounterMutation.results[0]?.previous ?? sentInWindow;
+       if (previousSent >= digestConfig.maxAlertsPerWindow) {
+diff --git a/worker/src/routes/sentry-tunnel.ts b/worker/src/routes/sentry-tunnel.ts
+index ed4a20e..efcfdad 100644
+--- a/worker/src/routes/sentry-tunnel.ts
++++ b/worker/src/routes/sentry-tunnel.ts
+@@ -1,4 +1,5 @@
+ import type { Env } from "../types";
++import { PayloadTooLargeError, readRequestBodyWithLimit } from "../core/request-body";
+ 
+ type SentryTunnelRouteOptions = {
+   request: Request;
+@@ -35,10 +36,7 @@ function parseSentryDsn(raw: unknown): ParsedSentryDsn | null {
+   }
+ }
+ 
+-function extractTunnelToken(request: Request, url: URL): string | null {
+-  const fromQuery = String(url.searchParams.get("t") || "").trim();
+-  if (fromQuery) return fromQuery;
+-
++function extractTunnelToken(request: Request): string | null {
+   const authHeader = String(request.headers.get("authorization") || "").trim();
+   const bearer = authHeader.match(/^Bearer\s+(.+)$/i);
+   if (bearer?.[1]) return bearer[1].trim();
+@@ -81,7 +79,7 @@ export async function handleSentryTunnelRoute({
+       headers: corsHeaders,
+     });
+   }
+-  const providedToken = extractTunnelToken(request, url);
++  const providedToken = extractTunnelToken(request);
+   if (!providedToken) {
+     return new Response("Missing tunnel token", { status: 401, headers: corsHeaders });
+   }
+@@ -96,9 +94,14 @@ export async function handleSentryTunnelRoute({
+   }
+ 
+   try {
+-    const envelope = await request.text();
+-    if (new TextEncoder().encode(envelope).byteLength > MAX_ENVELOPE_BYTES) {
+-      return new Response("Payload Too Large", { status: 413, headers: corsHeaders });
++    let envelope = "";
++    try {
++      envelope = await readRequestBodyWithLimit(request, MAX_ENVELOPE_BYTES);
++    } catch (error) {
++      if (error instanceof PayloadTooLargeError) {
++        return new Response("Payload Too Large", { status: 413, headers: corsHeaders });
++      }
++      throw error;
+     }
+     const pieces = envelope.split("\n");

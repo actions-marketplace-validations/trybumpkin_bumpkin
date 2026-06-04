@@ -1,0 +1,30 @@
+-import { returnExcitedGreeting, returnGreeting, returnGreetingForPerson } from "./hello";
++import { returnExcitedGreeting, returnGreeting, returnGreetingForPerson, returnQuestionGreeting } from "./hello";
+ 
+ describe("unit tests and code side by side", () => {
+   describe("when using the returnGreeting function", () => {
+@@
+       expect(returnExcitedGreeting("Anas")).toBe("hello Anas!");
+     });
+   });
++
++  describe("when using the returnQuestionGreeting function", () => {
++    it("returns a question-style greeting for the provided name", () => {
++      expect(returnQuestionGreeting("Anas")).toBe("hello Anas?");
++    });
++  });
+ });
+@@
+ const HELLO_WORLD = "hello world" as const;
+ const HELLO_PREFIX = "hello" as const;
++const EXCITED_PUNCTUATION = "!" as const;
++const QUESTION_PUNCTUATION = "?" as const;
+@@
+ export const returnExcitedGreeting = (name: string): string => {
+-  return formatGreeting(name, "!");
++  return formatGreeting(name, EXCITED_PUNCTUATION);
++};
++
++export const returnQuestionGreeting = (name: string): string => {
++  return formatGreeting(name, QUESTION_PUNCTUATION);
+ };

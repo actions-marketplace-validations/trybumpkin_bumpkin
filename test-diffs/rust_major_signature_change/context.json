@@ -1,0 +1,5 @@
+{
+  "language": "rust",
+  "category": "major_signature_change",
+  "note": "Required parameter added to pub rust function."
+}

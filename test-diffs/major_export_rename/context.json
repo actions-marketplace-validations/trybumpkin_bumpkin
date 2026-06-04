@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "major_export_removed",
+  "note": "Real merged PR from the private fixture repo. Renaming a public export removes the old API name and breaks existing callers."
+}

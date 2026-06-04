@@ -1,0 +1,5 @@
+{
+  "language": "rust",
+  "category": "patch_internal_refactor",
+  "note": "Internal rust helper update."
+}

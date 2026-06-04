@@ -1,0 +1,24 @@
+-import { returnGreeting, returnPersonalGreeting } from "./hello";
++import { returnExcitedGreeting, returnGreeting, returnPersonalGreeting } from "./hello";
+ 
+ describe("unit tests and code side by side", () => {
+   describe("when using the returnGreeting function", () => {
+@@
+       expect(returnPersonalGreeting("Anas")).toBe("hello Anas");
+     });
+   });
++
++  describe("when using the returnExcitedGreeting function", () => {
++    it("returns an excited greeting for the provided name", () => {
++      expect(returnExcitedGreeting("Anas")).toBe("hello Anas!");
++    });
++  });
+ });
+@@
+ export const returnPersonalGreeting = (name: string): string => {
+   return `${HELLO_PREFIX} ${name}`;
+ };
++
++export const returnExcitedGreeting = (name: string): string => {
++  return `${HELLO_PREFIX} ${name}!`;
++};

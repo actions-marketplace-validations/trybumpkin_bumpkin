@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "mixed_minor_patch",
+  "note": "Real merged PR from the private fixture repo. A new exported function plus internal constant refactor should resolve to MINOR."
+}

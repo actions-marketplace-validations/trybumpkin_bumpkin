@@ -1,0 +1,29 @@
+{
+  "typeCheckingMode": "basic",
+  "strict": [
+    "./src/bumpkin/analysis",
+    "./src/bumpkin/io",
+    "./src/bumpkin/orchestrator/pipeline.py",
+    "./src/bumpkin/orchestrator/scope.py",
+    "./src/bumpkin/orchestrator/court.py",
+    "./src/bumpkin/orchestrator/core.py",
+    "./src/bumpkin/policies",
+    "./src/bumpkin/providers",
+    "./src/bumpkin/versioning",
+    "./src/bumpkin/eval/fixtures.py",
+    "./src/bumpkin/eval/metrics.py",
+    "./src/bumpkin/eval/preflight.py",
+    "./src/bumpkin/eval/reporting.py"
+  ],
+  "extraPaths": ["./src"],
+  "executionEnvironments": [
+    {
+      "root": "./",
+      "extraPaths": ["./src"]
+    },
+    {
+      "root": "./tests",
+      "extraPaths": ["./src"]
+    }
+  ]
+}

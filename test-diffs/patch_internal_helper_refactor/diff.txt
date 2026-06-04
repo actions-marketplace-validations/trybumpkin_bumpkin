@@ -1,0 +1,17 @@
++const buildGreeting = (name: string, punctuation = ""): string => {
++  return `${HELLO_PREFIX} ${name}${punctuation}`;
++};
++
+ export const returnGreeting = (): typeof HELLO_WORLD => {
+   return HELLO_WORLD;
+ };
+ 
+ export const returnPersonalGreeting = (name: string): string => {
+-  return `${HELLO_PREFIX} ${name}`;
++  return buildGreeting(name);
+ };
+ 
+ export const returnExcitedGreeting = (name: string): string => {
+-  return `${HELLO_PREFIX} ${name}!`;
++  return buildGreeting(name, "!");
+ };

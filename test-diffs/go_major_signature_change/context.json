@@ -1,0 +1,5 @@
+{
+  "language": "go",
+  "category": "major_signature_change",
+  "note": "Required parameter added to exported go function."
+}

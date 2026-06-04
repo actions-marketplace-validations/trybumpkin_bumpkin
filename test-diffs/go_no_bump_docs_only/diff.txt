@@ -1,0 +1,3 @@
+diff --git a/docs/go.md b/docs/go.md
++## Behavior
++No runtime change.

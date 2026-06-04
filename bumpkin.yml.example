@@ -1,0 +1,96 @@
+ignore_paths:
+  - "*.lock"
+  - worker/.wrangler/**
+
+# Legacy fallback for public API hints.
+# Prefer the explicit `public_api` section below for new repos.
+surface_area:
+  - src/api/**
+  - src/lib/index.ts
+
+# Recommended public API contract used for boundary-aware policy decisions.
+public_api:
+  entrypoints:
+    - src/index.ts
+  paths:
+    - src/public/**
+
+# Optional internal/private implementation areas. These reduce false public MAJORs.
+internal_paths:
+  - src/internal/**
+  - src/private/**
+
+# Optional low-signal paths. These stay visible to the engine, but with lower weight.
+low_signal_paths:
+  - tests/**
+  - docs/**
+  - .github/**
+
+# Optional policy mode:
+# - pragmatic (default)
+# - strict_semver
+# - manual_first
+policy_mode: pragmatic
+
+# Pragmatic-only behavior: remap uncertain MINOR bugfixes to PATCH.
+bugfix_patch_bias: true
+
+# Optional syntax-aware diff preprocessing via difftastic (`difft` binary)
+# Falls back to git diff automatically if difftastic is unavailable.
+use_difftastic: false
+
+# Optional semantic fallback classifier when model calls fail.
+# When enabled, Bumpkin attempts MAJOR/MINOR/PATCH/NO_BUMP inference
+# instead of defaulting to PATCH-like stubs.
+semantic_fallback: true
+
+# Optional repo policy for zero-based tags like 0.y.z.
+# When true, breaking changes before 1.0.0 bump the minor version.
+pre_1_0_breaking_as_minor: true
+
+# Optional docs/config-only release policy.
+# Allowed values: NO_BUMP, PATCH
+docs_only_label: NO_BUMP
+
+# Optional large PR guardrails used to reject uncertain NO_BUMP outcomes.
+large_pr_max_files: 30
+large_pr_max_tokens: 6000
+
+# Optional policy when NO_BUMP is unsafe because context is truncated/noisy.
+# Allowed values: MANUAL_REVIEW, PATCH
+truncated_no_bump_policy: MANUAL_REVIEW
+
+# Chunking-first model analysis (recommended).
+chunking_enabled: true
+chunk_max_tokens: 1200
+chunk_max_count: 24
+# Allowed values: MANUAL_REVIEW, PATCH
+chunk_failure_policy: MANUAL_REVIEW
+
+# Gate MINOR/MAJOR unless enough public-impact evidence exists.
+# Allowed values: lenient, moderate, strict
+impact_evidence_threshold: moderate
+
+# Explicit unknown-boundary handling policy.
+# Allowed values: confidence_low, patch_if_bugfix, manual_review
+unknown_boundary_policy: patch_if_bugfix
+
+# Treat contract files as public-impact signals.
+# Allowed values: off, path_signals
+behavior_contract_policy: path_signals
+
+# High noise handling for generated/vendor/lockfile-heavy PRs.
+# Allowed values: off, balanced, strict
+noise_suppression_policy: balanced
+
+# Override conflict behavior + audit visibility.
+# Allowed values: strict_audit, severity_precedence
+override_governance_policy: strict_audit
+
+# Degraded model-provider behavior.
+# Allowed values: MANUAL_REVIEW, PATCH
+degraded_provider_policy: MANUAL_REVIEW
+
+# Optional PR comment mode.
+# Allowed values: off, major, manual_review, always
+pr_comment_mode: off

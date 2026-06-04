@@ -1,0 +1,23 @@
+diff --git a/src/api.ts b/src/api.ts
+index 1111111..2222222 100644
+--- a/src/api.ts
++++ b/src/api.ts
+@@
+ export function listUsers(limit: number): string[] {
+   return [];
+ }
++
++export function listTeams(limit: number): string[] {
++  return [];
++}
++
++export function listProjects(limit: number): string[] {
++  return [];
++}
+diff --git a/docs/release.md b/docs/release.md
+index 1111111..2222222 100644
+--- a/docs/release.md
++++ b/docs/release.md
+@@
+-Old release notes
++Updated release notes with generated content.

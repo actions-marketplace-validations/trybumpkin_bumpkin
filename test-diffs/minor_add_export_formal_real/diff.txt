@@ -1,0 +1,23 @@
+-import { returnExcitedGreeting, returnGreeting, returnGreetingForPerson, returnQuestionGreeting } from "./hello";
++import { returnExcitedGreeting, returnFormalGreeting, returnGreeting, returnGreetingForPerson, returnQuestionGreeting } from "./hello";
+@@
+   describe("when using the returnQuestionGreeting function", () => {
+     it("returns a question-style greeting for the provided name", () => {
+       expect(returnQuestionGreeting({ name: "Anas" })).toBe("hello Anas?");
+     });
+   });
++
++  describe("when using the returnFormalGreeting function", () => {
++    it("returns a formal greeting for the provided title and name", () => {
++      expect(returnFormalGreeting({ title: "Dr.", name: "Anas" })).toBe("hello Dr. Anas");
++    });
++  });
+ });
+@@
+ export const returnQuestionGreeting = (input: { name: string }): string => {
+   return formatGreeting(input.name, QUESTION_PUNCTUATION);
+ };
++
++export const returnFormalGreeting = (input: { title: string; name: string }): string => {
++  return formatGreeting(`${input.title} ${input.name}`);
++};

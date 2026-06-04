@@ -1,0 +1,17 @@
+diff --git a/src/internal/cache.ts b/src/internal/cache.ts
+index 8f11111..8f22222 100644
+--- a/src/internal/cache.ts
++++ b/src/internal/cache.ts
+@@ -42,9 +42,12 @@ function readCachedUser(cache, id) {
+   const entry = cache.get(id);
+-  if (!entry) return null;
++  if (!entry) {
++    return null;
++  }
++
+   if (Date.now() - entry.ts > TTL_MS) {
+     cache.delete(id);
+     return null;
+   }
+   return entry.value;
+ }

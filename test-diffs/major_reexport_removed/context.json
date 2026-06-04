@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "major_export_removed",
+  "note": "Removing a public re-export is equivalent to removing a public API symbol."
+}

@@ -1,0 +1,40 @@
+{
+  "prompt_version": "js-ts-v1",
+  "evaluation_mode": "pipeline_parity",
+  "language_group": "javascript-typescript",
+  "promotion_status": "promoted",
+  "fixture_set": "test-diffs",
+  "min_overall_pass_rate": 0.7,
+  "required_schema_valid_rate": 1.0,
+  "min_ambiguous_low_confidence_rate": 1.0,
+  "min_category_pass_rates": {
+    "ambiguous_public_surface": 1.0,
+    "hybrid_floor_raise": 1.0,
+    "hybrid_large_real_full": 1.0,
+    "hybrid_large_real_truncated": 1.0,
+    "hybrid_major_override": 1.0,
+    "hybrid_model_path": 1.0,
+    "major_export_removed": 1.0,
+    "major_signature_change": 1.0,
+    "minor_export_added": 1.0,
+    "mixed_major_minor": 1.0,
+    "patch_internal_refactor": 1.0,
+    "surface_area_required": 1.0
+  },
+  "required_fixture_distribution": {
+    "labeled_fixture_min": 20,
+    "mixed_fixture_min": 3,
+    "label_mins": {
+      "NO_BUMP": 4,
+      "PATCH": 4,
+      "MINOR": 5,
+      "MAJOR": 5
+    }
+  },
+  "court_thresholds": {
+    "min_deterministic_accuracy": 0.7,
+    "min_advisory_alignment_rate": 0.0,
+    "max_advisory_degraded_rate": 1.0,
+    "required_case_file_budget_compliance_rate": 1.0
+  }
+}

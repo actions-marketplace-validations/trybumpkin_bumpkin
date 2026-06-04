@@ -1,0 +1,32 @@
+{
+  "prompt_version": "generic-v0",
+  "evaluation_mode": "pipeline_parity",
+  "promotion_status": "experimental",
+  "fixture_set": "test-diffs",
+  "min_overall_pass_rate": 0.0,
+  "required_schema_valid_rate": 1.0,
+  "min_ambiguous_low_confidence_rate": 0.0,
+  "min_category_pass_rates": {
+    "major_signature_change": 0.0,
+    "minor_export_added": 0.0,
+    "patch_internal_refactor": 0.0,
+    "no_bump_docs_only": 0.0
+  },
+  "required_fixture_distribution": {
+    "labeled_fixture_min": 4,
+    "mixed_fixture_min": 0,
+    "label_mins": {
+      "NO_BUMP": 1,
+      "PATCH": 1,
+      "MINOR": 1,
+      "MAJOR": 1
+    }
+  },
+  "court_thresholds": {
+    "min_deterministic_accuracy": 0.0,
+    "min_advisory_alignment_rate": 0.0,
+    "max_advisory_degraded_rate": 1.0,
+    "required_case_file_budget_compliance_rate": 1.0
+  },
+  "language_group": "java-kotlin"
+}

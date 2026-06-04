@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "minor_export_added",
+  "note": "Real merged PR from the private fixture repo. Adding a new exported helper with no breaking API changes should resolve to MINOR."
+}

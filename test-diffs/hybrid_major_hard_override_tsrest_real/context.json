@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "hybrid_major_override",
+  "note": "Real merged ts-rest diff: deterministic breaking export removal must remain hard-authoritative even when model analysis is present."
+}

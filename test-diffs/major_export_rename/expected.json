@@ -1,0 +1,9 @@
+{
+  "label": "MAJOR",
+  "findings": [
+    {
+      "rule": "export_symbol_renamed",
+      "severity": "MAJOR"
+    }
+  ]
+}

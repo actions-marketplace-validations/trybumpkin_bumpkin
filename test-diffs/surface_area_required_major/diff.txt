@@ -1,0 +1,2 @@
+- function normalizeBilling(user, opts) {}
++ function normalizeBilling(user, opts, audit) {}

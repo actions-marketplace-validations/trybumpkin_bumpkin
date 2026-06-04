@@ -1,0 +1,2 @@
+- fn normalize_user(value: &str) -> String { value.to_string() }
++ fn normalize_user(value: &str) -> String { value.trim().to_string() }

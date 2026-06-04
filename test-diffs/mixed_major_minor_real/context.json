@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "mixed_major_minor",
+  "note": "Real merged PR from the private fixture repo. A breaking export rename plus internal refactor should resolve to MAJOR."
+}

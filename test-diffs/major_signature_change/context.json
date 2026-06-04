@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "major_signature_change",
+  "note": "Changing the required parameter contract of an export is a breaking change."
+}

@@ -1,0 +1,6 @@
+{
+  "language": "javascript-typescript",
+  "surface_area": ["src/billing/public.ts"],
+  "category": "surface_area_required",
+  "note": "This fixture represents a public API helper that only becomes clearly public when surface_area hints are supplied."
+}

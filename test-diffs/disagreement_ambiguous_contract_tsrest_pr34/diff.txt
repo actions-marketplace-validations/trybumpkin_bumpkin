@@ -1,0 +1,13 @@
+diff --git a/libs/ts-rest/core/src/lib/bumpkin-fixture.ts b/libs/ts-rest/core/src/lib/bumpkin-fixture.ts
+index 8dd5a50..9b8a197 100644
+--- a/libs/ts-rest/core/src/lib/bumpkin-fixture.ts
++++ b/libs/ts-rest/core/src/lib/bumpkin-fixture.ts
+@@ -2,7 +2,7 @@ export interface FixtureUser {
+   id: string;
+   primaryEmail: string;
+   active: boolean;
+-  displayName?: string;
++  displayName: string | null;
+ }
+ 
+ export type FixtureFetchUser = (id: string, tenantId: string) => Promise<FixtureUser>;

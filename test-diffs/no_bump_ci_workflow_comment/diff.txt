@@ -1,0 +1,11 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 12acccc..17deadd 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -10,6 +10,7 @@ jobs:
+   lint:
+     runs-on: ubuntu-latest
+     steps:
++      # Keep this step ordering aligned with local runbook.
+       - uses: actions/checkout@v4
+       - run: npm ci

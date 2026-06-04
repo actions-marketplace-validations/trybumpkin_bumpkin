@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "ambiguous_public_surface",
+  "note": "Signature changed, but the diff does not prove the helper is part of public API."
+}

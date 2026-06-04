@@ -1,0 +1,5 @@
+{
+  "language": "javascript-typescript",
+  "category": "mixed_minor_patch",
+  "note": "Real merged ts-rest PR #26: exported symbol addition plus internal behavior tweak should aggregate to MINOR."
+}

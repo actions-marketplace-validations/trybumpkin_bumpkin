@@ -1,0 +1,5 @@
+{
+  "language": "go",
+  "category": "minor_export_added",
+  "note": "New exported go symbol."
+}

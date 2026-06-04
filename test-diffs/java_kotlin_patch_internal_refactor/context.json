@@ -1,0 +1,5 @@
+{
+  "language": "java-kotlin",
+  "category": "patch_internal_refactor",
+  "note": "Private JVM helper update."
+}

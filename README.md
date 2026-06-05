@@ -17,6 +17,7 @@ Built for release-scoped GitHub Actions.
 ## Setup
 
 Use [trybumpkin/bumpkin-action](https://github.com/trybumpkin/bumpkin-action) when you want to install Bumpkin as a GitHub Action.
+Install from GitHub Marketplace: [Bumpkin Release Action](https://github.com/marketplace/actions/bumpkin-release-action).
 
 Before you run it:
 

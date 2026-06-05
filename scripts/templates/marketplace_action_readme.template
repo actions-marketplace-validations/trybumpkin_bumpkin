@@ -1,6 +1,6 @@
 # Bumpkin Action
 
-Bumpkin is a release-scoped Action that analyzes merged PRs, determines version bumps, and prepares release notes.
+Bumpkin is a GitHub Action that analyzes merged PRs, determines version bumps, and prepares release notes.
 
 Run it when you are ready to cut a release:
 
@@ -22,8 +22,6 @@ Give the workflow:
 
 - `contents: write`
 - `pull-requests: read`
-
-GitHub provides `GITHUB_TOKEN` automatically for repository reads and release publishing.
 
 ## Example workflow
 

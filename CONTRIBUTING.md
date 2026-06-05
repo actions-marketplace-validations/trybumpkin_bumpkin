@@ -72,6 +72,83 @@ That means:
 - normal code health checks belong in `ci.yml`
 - eval/canary/research-style checks belong in `evals.yml`
 
+## Running evals locally
+
+Run a focused eval lane with:
+
+```bash
+PYTHONPATH=src python src/eval.py \
+  --language-group python \
+  --model "$BUMPKIN_MODEL" \
+  --endpoint "$BUMPKIN_MODELS_ENDPOINT" \
+  --output-json artifacts/eval-python.json
+```
+
+Useful flags:
+
+- `--strict` to fail when the quality gate fails
+- `--prompt-gate-baseline test-diffs/baselines/python-v1.json` to compare against a baseline
+- `--preflight-only` to validate provider/model access before running fixtures
+- `--continue-on-preflight-failure` for degraded deterministic smoke checks
+
+If you want the GitHub workflow version, use:
+
+- `.github/workflows/evals.yml`
+
+That workflow already has lanes for:
+
+- `python`
+- `go`
+- `rust`
+- `java-kotlin`
+
+## Fixture and baseline layout
+
+Fixture cases live under:
+
+- `test-diffs/<case-name>/`
+
+Each case normally includes:
+
+- `diff.txt`
+- `expected.json`
+- `context.json`
+
+Baselines live under:
+
+- `test-diffs/baselines/`
+
+Those baselines are mapped in:
+
+- `src/eval.py`
+
+## Adding or improving language support
+
+When adding support for a language or improving an existing lane:
+
+1. add or update representative fixtures under `test-diffs/`
+2. add or update the language baseline JSON under `test-diffs/baselines/`
+3. register the baseline in `PROMPT_GATE_BASELINES` in `src/eval.py`
+4. add or update heuristics, findings, or boundary rules in the relevant engine code
+5. add or update unit/integration tests near the changed logic
+6. only extend the eval workflow lane when the support is real enough to defend
+
+Good language support here means more than "the eval runs":
+
+- the fixtures look like real repo changes
+- the expected SemVer outcomes are clear
+- the public API boundary assumptions make sense for that ecosystem
+- the lane is stable enough to be useful to other contributors
+
+## Changing release behavior
+
+If you change release logic, also check:
+
+- `release_preview`
+- `release_publish`
+- release note output
+- any affected docs in `README.md`, `ROADMAP.md`, or `bumpkin.yml.example`
+
 ## Docs surface
 
 We keep the public markdown surface intentionally small.

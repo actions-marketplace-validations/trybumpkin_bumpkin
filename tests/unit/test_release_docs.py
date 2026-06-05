@@ -7,7 +7,7 @@ def test_readme_frames_release_scoped_flow_as_primary_story() -> None:
     repo_root = Path(__file__).resolve().parents[2]
     readme = (repo_root / "README.md").read_text(encoding="utf-8")
 
-    assert "assets/bumpkinb-wide.png" in readme
+    assert "assets/hero.svg" in readme
     assert "release assistant" in readme
     assert "Built for release-scoped GitHub Actions" in readme
     assert "operation: ${{ inputs.operation }}" in readme

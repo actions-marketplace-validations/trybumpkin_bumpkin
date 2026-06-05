@@ -1,6 +1,6 @@
 # Bumpkin
 
-![Bumpkin banner](assets/bumpkinb-wide.png)
+![Bumpkin banner](assets/hero.svg)
 
 Bumpkin is a release assistant that analyzes merged PRs, determines version bumps, and writes release notes - no commit conventions required.
 

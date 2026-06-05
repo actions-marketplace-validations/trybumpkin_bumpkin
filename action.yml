@@ -1,5 +1,8 @@
-name: "Bumpkin"
+name: "Bumpkin Release Action"
 description: "Analyzes merged PRs, determines version bumps, and prepares release notes"
+branding:
+  icon: "git-merge"
+  color: "blue"
 inputs:
   operation:
     description: "Mode: pr_recommendation | release_preview | release_publish"

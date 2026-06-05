@@ -43,7 +43,7 @@ def resolve_models_token(*, endpoint: str | None = None) -> str:
             or os.getenv("OPENROUTER_API_KEY")
             or os.getenv("MODELS_TOKEN")
             or os.getenv("GITHUB_MODELS_TOKEN")
-            or os.getenv("GITHUB_TOKEN", "")
+            or ""
         )
 
     return (
@@ -51,7 +51,7 @@ def resolve_models_token(*, endpoint: str | None = None) -> str:
         or os.getenv("GITHUB_MODELS_TOKEN")
         or os.getenv("OPENROUTER_API_KEY")
         or os.getenv("OPENROUTER_API")
-        or os.getenv("GITHUB_TOKEN", "")
+        or ""
     )
 
 

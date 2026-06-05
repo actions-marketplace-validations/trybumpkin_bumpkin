@@ -456,7 +456,7 @@ def _call_github_models(
     if not token:
         raise LLMUnavailableError(
             "No token available for model provider. Provide MODELS_TOKEN, GITHUB_MODELS_TOKEN, "
-            "OPENROUTER_API_KEY/OPENROUTER_API, or GITHUB_TOKEN."
+            "or OPENROUTER_API_KEY/OPENROUTER_API."
         )
 
     payload = {

@@ -27,7 +27,7 @@ def test_resolve_models_token_falls_back_to_github_models_token(monkeypatch) -> 
     assert resolve_models_token() == "github-models-token"
 
 
-def test_resolve_models_token_falls_back_to_github_token(monkeypatch) -> None:
+def test_resolve_models_token_returns_empty_without_model_provider_token(monkeypatch) -> None:
     monkeypatch.delenv("BUMPKIN_MODELS_ENDPOINT", raising=False)
     monkeypatch.delenv("GITHUB_MODELS_ENDPOINT", raising=False)
     monkeypatch.delenv("OPENROUTER_ENDPOINT", raising=False)
@@ -37,7 +37,7 @@ def test_resolve_models_token_falls_back_to_github_token(monkeypatch) -> None:
     monkeypatch.delenv("OPENROUTER_API", raising=False)
     monkeypatch.setenv("GITHUB_TOKEN", "github-token")
 
-    assert resolve_models_token() == "github-token"
+    assert resolve_models_token() == ""
 
 
 def test_resolve_models_token_prefers_openrouter_api_for_openrouter_endpoint(

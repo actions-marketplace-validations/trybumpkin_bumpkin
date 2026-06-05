@@ -39,10 +39,9 @@ jobs:
         with:
           operation: ${{ inputs.operation }}
           base_tag: ${{ inputs.base_tag }}
-          provider: auto
-          model: ${{ secrets.BUMPKIN_MODEL || vars.BUMPKIN_MODEL || 'openai/gpt-4.1-mini' }}
-          fallback_model: ${{ secrets.BUMPKIN_FALLBACK_MODEL || vars.BUMPKIN_FALLBACK_MODEL || 'openai/gpt-4o-mini' }}
-          models_endpoint: ${{ secrets.BUMPKIN_MODELS_ENDPOINT || vars.BUMPKIN_MODELS_ENDPOINT || '' }}
+          model: ${{ secrets.BUMPKIN_MODEL }}
+          fallback_model: ${{ secrets.BUMPKIN_FALLBACK_MODEL || '' }}
+          models_endpoint: ${{ secrets.BUMPKIN_MODELS_ENDPOINT }}
           models_token: ${{ secrets.MODELS_TOKEN }}
           request_timeout: "45"
           model_call_min_interval_ms: "4000"

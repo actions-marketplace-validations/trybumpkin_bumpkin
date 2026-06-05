@@ -511,12 +511,9 @@ class PipelineRecommendationRunner:
         use_difftastic: str | None = None,
     ) -> None:
         self._mode = mode or os.getenv("BUMPKIN_PROVIDER", "auto")
-        self._model = model or os.getenv("BUMPKIN_MODEL", "openai/gpt-4.1-mini")
+        self._model = model or os.getenv("BUMPKIN_MODEL", "")
         self._fallback_model = fallback_model or os.getenv("BUMPKIN_FALLBACK_MODEL", "")
-        self._models_endpoint = models_endpoint or os.getenv(
-            "BUMPKIN_MODELS_ENDPOINT",
-            "https://openrouter.ai/api/v1/chat/completions",
-        )
+        self._models_endpoint = models_endpoint or os.getenv("BUMPKIN_MODELS_ENDPOINT", "")
         self._max_retries = max_retries if max_retries is not None else 3
         self._request_timeout = (
             request_timeout
@@ -531,6 +528,10 @@ class PipelineRecommendationRunner:
         pr_number = request.event.pull_request_number
         if not repository or pr_number is None:
             raise ValueError("merge recommendation requires repository and pull request number.")
+        if not self._model.strip():
+            raise ValueError("BUMPKIN_MODEL is required for recommendation runs.")
+        if not self._models_endpoint.strip():
+            raise ValueError("BUMPKIN_MODELS_ENDPOINT is required for recommendation runs.")
         token = (request.provider_token or "").strip()
         fallback_diff_builder: Any | None = None
         try:

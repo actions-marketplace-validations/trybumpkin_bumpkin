@@ -7,7 +7,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "artifacts" / "marketplace-action-repo"
 
 FILE_EXPORTS: tuple[tuple[str, str], ...] = (
-    ("MARKETPLACE_ACTION_GITIGNORE", ".gitignore"),
+    ("scripts/templates/marketplace_action_gitignore.template", ".gitignore"),
     ("action.yml", "action.yml"),
     ("LICENSE", "LICENSE"),
     ("SECURITY.md", "SECURITY.md"),

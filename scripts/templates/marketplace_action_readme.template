@@ -1,20 +1,29 @@
 # Bumpkin Action
 
-Bumpkin is a release-scoped semantic versioning Action for GitHub.
+Bumpkin is a release-scoped Action that analyzes merged PRs, determines version bumps, and prepares release notes.
 
-It is designed to run when you are cutting a release:
+Run it when you are ready to cut a release:
 
 1. find the previous tag
 2. scan merged PRs since that tag
-3. recommend the semantic version bump
+3. determine the next version or `NO_BUMP`
 4. write release notes
 5. optionally publish the tag and GitHub Release
 
-## Supported operations
+## Setup
 
-- `pr_recommendation`
-- `release_preview`
-- `release_publish`
+Add these repository secrets:
+
+- `MODELS_TOKEN`
+- `BUMPKIN_MODEL`
+- `BUMPKIN_MODELS_ENDPOINT`
+
+Give the workflow:
+
+- `contents: write`
+- `pull-requests: read`
+
+GitHub provides `GITHUB_TOKEN` automatically for repository reads and release publishing.
 
 ## Example workflow
 
@@ -48,22 +57,18 @@ jobs:
         uses: trybumpkin/bumpkin-action@v1
         with:
           operation: ${{ inputs.operation }}
-          provider: auto
-          model: ${{ vars.BUMPKIN_MODEL || 'openai/gpt-4.1-mini' }}
-          fallback_model: ${{ vars.BUMPKIN_FALLBACK_MODEL || 'openai/gpt-4o-mini' }}
-          models_endpoint: ${{ vars.BUMPKIN_MODELS_ENDPOINT || '' }}
+          model: ${{ secrets.BUMPKIN_MODEL }}
+          fallback_model: ${{ secrets.BUMPKIN_FALLBACK_MODEL || '' }}
+          models_endpoint: ${{ secrets.BUMPKIN_MODELS_ENDPOINT }}
           models_token: ${{ secrets.MODELS_TOKEN }}
 ```
 
-## Required secret
+## Release modes
 
-- `MODELS_TOKEN`
-
-## Optional variables
-
-- `BUMPKIN_MODEL`
-- `BUMPKIN_FALLBACK_MODEL`
-- `BUMPKIN_MODELS_ENDPOINT`
+- `release_preview` builds the release plan and notes without publishing.
+- `release_publish` creates the tag and GitHub Release.
+- `NO_BUMP` means no release is needed.
+- `needs_review` means the batch should be reviewed before publishing.
 
 ## Outputs
 

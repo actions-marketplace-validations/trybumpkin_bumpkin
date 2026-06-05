@@ -1,5 +1,5 @@
 name: "Bumpkin"
-description: "Analyzes merged PRs or release batches and recommends/publishes semantic versions"
+description: "Analyzes merged PRs, determines version bumps, and prepares release notes"
 inputs:
   operation:
     description: "Mode: pr_recommendation | release_preview | release_publish"
@@ -14,7 +14,7 @@ inputs:
     required: false
     default: ""
   api_key:
-    description: "Legacy API key input. Unused for GitHub Models path."
+    description: "Legacy input. Prefer models_token."
     required: false
     default: ""
   target_ref:
@@ -30,25 +30,22 @@ inputs:
     required: false
     default: "artifacts/release/bumpkin-release-notes.md"
   provider:
-    description: "Recommendation provider mode: auto | stub | github-models | openrouter"
+    description: "Provider mode override. Leave as auto unless you are testing a specific path."
     required: false
     default: "auto"
   model:
-    description: "GitHub Models model id, e.g. openai/gpt-4.1-mini"
-    required: false
-    default: "openai/gpt-4.1-mini"
+    description: "Model identifier for the configured provider."
+    required: true
   fallback_model:
-    description: "Optional fallback GitHub Models model id when primary model is unavailable."
+    description: "Optional fallback model identifier when the primary model is unavailable."
     required: false
     default: ""
   models_endpoint:
-    description: "Optional chat-completions endpoint override (for example OpenRouter)."
-    required: false
-    default: ""
+    description: "Chat completions endpoint for the configured model provider."
+    required: true
   models_token:
-    description: "Optional token for model API. Supports GitHub Models and OpenRouter."
-    required: false
-    default: ""
+    description: "API token for the configured model provider."
+    required: true
   token_cap:
     description: "Approximate token cap for diff payload."
     required: false

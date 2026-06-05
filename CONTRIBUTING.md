@@ -83,7 +83,6 @@ Public root docs should stay focused and useful:
 - `SECURITY.md`
 - `ROADMAP.md`
 - `CONTRIBUTING.md`
-- `CODE_OF_CONDUCT.md`
 
 If a doc is mostly internal planning or experiment scaffolding, it should not live as a public-facing root markdown file.
 

@@ -9,10 +9,11 @@ def test_readme_frames_release_scoped_flow_as_primary_story() -> None:
 
     assert "assets/bumpkinb-wide.png" in readme
     assert "release assistant" in readme
-    assert "release-scoped GitHub Actions" in readme
+    assert "Built for release-scoped GitHub Actions" in readme
+    assert "operation: ${{ inputs.operation }}" in readme
     assert "release_preview" in readme
     assert "release_publish" in readme
-    assert "python -m bumpkin.release_job" in readme
+    assert "MODELS_TOKEN" in readme
     assert "BUMPKIN_MODEL" in readme
     assert "BUMPKIN_MODELS_ENDPOINT" in readme
     assert "trybumpkin/bumpkin-action" in readme
@@ -31,16 +32,15 @@ def test_internal_markdown_is_gitignored() -> None:
     assert "!SECURITY.md" in gitignore
     assert "!ROADMAP.md" in gitignore
     assert "!CONTRIBUTING.md" in gitignore
-    assert "!CODE_OF_CONDUCT.md" in gitignore
 
 
 def test_env_example_marks_app_runtime_as_optional() -> None:
     repo_root = Path(__file__).resolve().parents[2]
     env_example = (repo_root / ".env.example").read_text(encoding="utf-8")
 
-    assert "BUMPKIN_MODEL=openai/gpt-4.1-mini" in env_example
+    assert "BUMPKIN_MODEL=your_model_name_here" in env_example
     assert "BUMPKIN_FALLBACK_MODEL=" in env_example
-    assert "BUMPKIN_MODELS_ENDPOINT=" in env_example
+    assert "BUMPKIN_MODELS_ENDPOINT=https://your-provider.example/v1/chat/completions" in env_example
     assert "BUMPKIN_APP_MODE=shell" not in env_example
 
 def test_marketplace_action_template_exists() -> None:
@@ -50,6 +50,9 @@ def test_marketplace_action_template_exists() -> None:
     ).read_text(encoding="utf-8")
 
     assert "# Bumpkin Action" in action_readme
+    assert "MODELS_TOKEN" in action_readme
+    assert "BUMPKIN_MODEL" in action_readme
+    assert "BUMPKIN_MODELS_ENDPOINT" in action_readme
 
 
 def test_roadmap_is_public_and_mentions_language_expansion() -> None:

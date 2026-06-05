@@ -16,6 +16,9 @@ def test_composite_action_exposes_release_operations_and_outputs() -> None:
     assert "target_ref" in inputs
     assert "base_tag" in inputs
     assert "output_markdown" in inputs
+    assert inputs["model"]["required"] is True
+    assert inputs["models_endpoint"]["required"] is True
+    assert inputs["models_token"]["required"] is True
 
     outputs = action["outputs"]
     assert "release_status" in outputs
@@ -44,6 +47,10 @@ def test_example_release_workflow_uses_release_scoped_operation() -> None:
     steps = release_job["steps"]
     bumpkin_step = next(step for step in steps if step.get("id") == "bumpkin")
     assert bumpkin_step["with"]["operation"] == "${{ inputs.operation }}"
+    assert bumpkin_step["with"]["model"] == "${{ secrets.BUMPKIN_MODEL }}"
+    assert bumpkin_step["with"]["models_endpoint"] == "${{ secrets.BUMPKIN_MODELS_ENDPOINT }}"
+    assert bumpkin_step["with"]["models_token"] == "${{ secrets.MODELS_TOKEN }}"
+    assert "provider" not in bumpkin_step["with"]
 
 
 def test_action_runtime_and_ci_use_separate_requirements_files() -> None:

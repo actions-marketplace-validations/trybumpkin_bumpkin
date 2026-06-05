@@ -754,7 +754,7 @@ def test_polish_explanation_attempts_repair_on_non_json_output(monkeypatch) -> N
         ],
         token="token",
         endpoint="https://models.inference.ai.azure.com/chat/completions",
-        model="openai/gpt-4.1-mini",
+        model="openai/gpt-5-mini",
         max_retries=1,
         request_timeout=5,
     )

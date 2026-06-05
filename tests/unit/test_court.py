@@ -172,7 +172,7 @@ def test_validate_court_payload_rejects_unknown_evidence_ids() -> None:
 def test_run_court_advisory_skips_without_engine_label() -> None:
     advisory, reason, model = court_module.run_court_advisory(
         mode="auto",
-        model="openai/gpt-4.1-mini",
+        model="openai/gpt-5-mini",
         fallback_model=None,
         endpoint="https://models.inference.ai.azure.com/chat/completions",
         token="token",
@@ -189,7 +189,7 @@ def test_run_court_advisory_skips_without_engine_label() -> None:
 def test_run_court_advisory_degrades_without_token() -> None:
     advisory, reason, model = court_module.run_court_advisory(
         mode="auto",
-        model="openai/gpt-4.1-mini",
+        model="openai/gpt-5-mini",
         fallback_model=None,
         endpoint="https://models.inference.ai.azure.com/chat/completions",
         token="",
@@ -218,13 +218,13 @@ def test_run_court_advisory_marks_manual_review_on_disagreement(monkeypatch) -> 
                 "accepted_evidence_ids": ["finding:f1"],
                 "rejected_evidence_ids": [],
             },
-            "openai/gpt-4.1-mini",
+            "openai/gpt-5-mini",
         )
 
     monkeypatch.setattr(court_module, "_call_with_fallback", _fake_call_with_fallback)
     advisory, reason, model = court_module.run_court_advisory(
         mode="auto",
-        model="openai/gpt-4.1-mini",
+        model="openai/gpt-5-mini",
         fallback_model=None,
         endpoint="https://models.inference.ai.azure.com/chat/completions",
         token="token",
@@ -236,7 +236,7 @@ def test_run_court_advisory_marks_manual_review_on_disagreement(monkeypatch) -> 
     assert advisory["status"] == "manual_review"
     assert "disagreed" in str(advisory["disagreement_reason"]).lower()
     assert reason is None
-    assert model == "openai/gpt-4.1-mini"
+    assert model == "openai/gpt-5-mini"
 
 
 def test_call_model_attempts_repair_on_parse_failure(monkeypatch) -> None:
@@ -278,7 +278,7 @@ def test_call_model_attempts_repair_on_parse_failure(monkeypatch) -> None:
     payload = court_module._call_model(
         token="token",
         endpoint="https://models.inference.ai.azure.com/chat/completions",
-        model="openai/gpt-4.1-mini",
+        model="openai/gpt-5-mini",
         messages=[{"role": "user", "content": "test"}],
         fallback_label="PATCH",
         max_retries=1,

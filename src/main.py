@@ -65,8 +65,8 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--model",
-        default=os.getenv("BUMPKIN_MODEL", "openai/gpt-4.1-mini"),
-        help="GitHub Models model id (publisher/model)",
+        default=os.getenv("BUMPKIN_MODEL", ""),
+        help="Model identifier for the configured provider.",
     )
     parser.add_argument(
         "--fallback-model",
@@ -76,7 +76,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--models-endpoint",
         default=resolve_models_endpoint(),
-        help="Model endpoint (GitHub Models or OpenRouter-compatible chat completions API)",
+        help="Chat completions endpoint for the configured model provider.",
     )
     parser.add_argument(
         "--max-retries",
@@ -462,6 +462,10 @@ def _apply_degraded_provider_policy(
 
 def main() -> int:
     args = _parse_args()
+    if not str(args.model or "").strip():
+        raise ValueError("BUMPKIN_MODEL or --model is required.")
+    if not str(args.models_endpoint or "").strip():
+        raise ValueError("BUMPKIN_MODELS_ENDPOINT or --models-endpoint is required.")
     from bumpkin.orchestrator import pipeline as orchestrator_pipeline
 
     return orchestrator_pipeline.run(args)

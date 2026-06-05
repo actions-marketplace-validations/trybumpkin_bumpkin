@@ -1,10 +1,4 @@
-from token_env import (
-    GITHUB_MODELS_ENDPOINT,
-    OPENROUTER_ENDPOINT,
-    is_openrouter_endpoint,
-    resolve_models_endpoint,
-    resolve_models_token,
-)
+from token_env import OPENROUTER_ENDPOINT, is_openrouter_endpoint, resolve_models_endpoint, resolve_models_token
 
 
 def test_resolve_models_token_prefers_models_token(monkeypatch) -> None:
@@ -65,26 +59,25 @@ def test_resolve_models_endpoint_prefers_explicit_env(monkeypatch) -> None:
     assert resolve_models_endpoint() == "https://example.com/custom"
 
 
-def test_resolve_models_endpoint_uses_openrouter_when_token_present(
-    monkeypatch,
-) -> None:
+def test_resolve_models_endpoint_uses_openrouter_env(monkeypatch) -> None:
     monkeypatch.delenv("BUMPKIN_MODELS_ENDPOINT", raising=False)
     monkeypatch.delenv("GITHUB_MODELS_ENDPOINT", raising=False)
     monkeypatch.delenv("OPENROUTER_ENDPOINT", raising=False)
-    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-v1-openrouter-token")
+    monkeypatch.setenv("OPENROUTER_ENDPOINT", OPENROUTER_ENDPOINT)
 
     assert resolve_models_endpoint() == OPENROUTER_ENDPOINT
 
 
-def test_resolve_models_endpoint_defaults_to_github_models(monkeypatch) -> None:
+def test_resolve_models_endpoint_returns_empty_when_unset(monkeypatch) -> None:
     monkeypatch.delenv("BUMPKIN_MODELS_ENDPOINT", raising=False)
     monkeypatch.delenv("GITHUB_MODELS_ENDPOINT", raising=False)
     monkeypatch.delenv("OPENROUTER_ENDPOINT", raising=False)
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("OPENROUTER_API", raising=False)
-    monkeypatch.setenv("MODELS_TOKEN", "github_pat_123")
+    monkeypatch.delenv("MODELS_TOKEN", raising=False)
+    monkeypatch.delenv("GITHUB_MODELS_TOKEN", raising=False)
 
-    assert resolve_models_endpoint() == GITHUB_MODELS_ENDPOINT
+    assert resolve_models_endpoint() == ""
 
 
 def test_is_openrouter_endpoint_detects_hostname() -> None:

@@ -4,19 +4,40 @@
 
 Bumpkin is a release assistant that analyzes merged PRs, determines version bumps, and writes release notes - no commit conventions required.
 
-Bumpkin is built around release-scoped GitHub Actions.
+Built for release-scoped GitHub Actions.
 
 ## What it does
 
 1. finds the previous tag
 2. scans merged PRs since that tag
-3. prepares release notes
-4. computes the next version or `NO_BUMP`
+3. determines the next version or `NO_BUMP`
+4. writes release notes for the batch
 5. optionally publishes the tag and GitHub Release
 
-## Quickstart
+## Setup
 
-Use Bumpkin from a manual GitHub Actions workflow.
+Use [trybumpkin/bumpkin-action](https://github.com/trybumpkin/bumpkin-action) when you want to install Bumpkin as a GitHub Action.
+
+Before you run it:
+
+- add these repository secrets:
+  - `MODELS_TOKEN`
+  - `BUMPKIN_MODEL`
+  - `BUMPKIN_MODELS_ENDPOINT`
+- give the workflow:
+  - `contents: write`
+  - `pull-requests: read`
+- GitHub provides `GITHUB_TOKEN` automatically for repository reads and release publishing
+
+Example secret values:
+
+```text
+MODELS_TOKEN=your_provider_token
+BUMPKIN_MODEL=gemini-2.5-flash
+BUMPKIN_MODELS_ENDPOINT=https://generativelanguage.googleapis.com/v1beta/openai/
+```
+
+## Quickstart
 
 ```yaml
 name: Bumpkin Release
@@ -49,10 +70,9 @@ jobs:
         uses: ./
         with:
           operation: ${{ inputs.operation }}
-          provider: auto
-          model: ${{ vars.BUMPKIN_MODEL || 'openai/gpt-4.1-mini' }}
-          fallback_model: ${{ vars.BUMPKIN_FALLBACK_MODEL || 'openai/gpt-4o-mini' }}
-          models_endpoint: ${{ vars.BUMPKIN_MODELS_ENDPOINT || '' }}
+          model: ${{ secrets.BUMPKIN_MODEL }}
+          fallback_model: ${{ secrets.BUMPKIN_FALLBACK_MODEL || '' }}
+          models_endpoint: ${{ secrets.BUMPKIN_MODELS_ENDPOINT }}
           models_token: ${{ secrets.MODELS_TOKEN }}
 
       - uses: actions/upload-artifact@v4
@@ -61,29 +81,33 @@ jobs:
           path: ${{ steps.bumpkin.outputs.release_notes_path }}
 ```
 
-## Provider setup
-
-Bumpkin is provider-agnostic.
-
-The simplest setup is:
-
-- `MODELS_TOKEN`
-- optionally `BUMPKIN_MODEL`
-- leave `BUMPKIN_MODELS_ENDPOINT` empty
-
-For Gemini or another OpenAI-compatible provider:
-
-- set `BUMPKIN_MODEL`
-- set `BUMPKIN_MODELS_ENDPOINT`
-- set `MODELS_TOKEN`
-
 See [`bumpkin.yml.example`](bumpkin.yml.example) for a full workflow example.
 
-## Install path
+## What you get back
 
-The dedicated Marketplace-style Action repo lives at [trybumpkin/bumpkin-action](https://github.com/trybumpkin/bumpkin-action).
+For each release run, Bumpkin returns:
 
-That repo is the clean install target for the Action.
+- the previous tag
+- the proposed next tag
+- the release type
+- the included PR count
+- a release notes artifact
+
+## Release modes
+
+- `release_preview` builds the release plan and notes without publishing.
+- `release_publish` creates the tag and GitHub Release.
+- `NO_BUMP` means no release is needed.
+- `needs_review` means the batch should be reviewed before publishing.
+
+## Maintainer flow
+
+From the Actions tab:
+
+1. run `Bumpkin Release`
+2. choose `release_preview`
+3. inspect the release notes artifact and summary
+4. run it again with `release_publish` when the preview looks right
 
 ## More
 
@@ -91,15 +115,3 @@ That repo is the clean install target for the Action.
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [SECURITY.md](SECURITY.md)
 - [CHANGELOG.md](CHANGELOG.md)
-
-## Local preview
-
-You can preview a release locally without any webhook server:
-
-```bash
-PYTHONPATH=src python -m bumpkin.release_job \
-  --operation preview \
-  --repository owner/repo \
-  --github-token "$GITHUB_TOKEN" \
-  --target-ref main
-```

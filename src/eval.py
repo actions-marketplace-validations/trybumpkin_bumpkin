@@ -350,13 +350,13 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--model",
-        default=os.getenv("BUMPKIN_MODEL", "openai/gpt-4.1-mini"),
-        help="GitHub Models model id",
+        default=os.getenv("BUMPKIN_MODEL", ""),
+        help="Model identifier for the configured provider.",
     )
     parser.add_argument(
         "--endpoint",
         default=resolve_models_endpoint(),
-        help="Model endpoint (GitHub Models or OpenRouter-compatible chat completions API)",
+        help="Chat completions endpoint for the configured model provider.",
     )
     parser.add_argument("--max-retries", type=int, default=3, help="Model API max retries")
     parser.add_argument(
@@ -439,6 +439,10 @@ def _write_output_json(path: str, payload: dict[str, Any]) -> None:
 
 def main() -> int:
     args = _parse_args()
+    if not str(args.model or "").strip():
+        raise ValueError("BUMPKIN_MODEL or --model is required.")
+    if not str(args.endpoint or "").strip():
+        raise ValueError("BUMPKIN_MODELS_ENDPOINT or --endpoint is required.")
     fixtures_dir = Path(args.fixtures_dir)
     if not fixtures_dir.exists():
         raise FileNotFoundError(f"Fixtures directory not found: {fixtures_dir}")

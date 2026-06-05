@@ -191,7 +191,10 @@ def test_pipeline_runner_uses_github_api_diff_fallback_when_git_refs_unavailable
         "pull_request": {"number": 68, "merged": True},
         "repository": {"full_name": "acme/repo"},
     }
-    runner = PipelineRecommendationRunner()
+    runner = PipelineRecommendationRunner(
+        model="gemini-2.5-flash",
+        models_endpoint="https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
 
     def fake_ensure(_: AppEvent) -> None:
         raise RuntimeError("git unavailable")
@@ -272,7 +275,10 @@ def test_pipeline_runner_uses_capture_only_mode_for_release_scope(monkeypatch) -
         "pull_request": {"number": 69, "merged": True},
         "repository": {"full_name": "acme/repo"},
     }
-    runner = PipelineRecommendationRunner()
+    runner = PipelineRecommendationRunner(
+        model="gemini-2.5-flash",
+        models_endpoint="https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
 
     monkeypatch.setattr(
         "bumpkin.app.recommendations._ensure_event_refs_available",
@@ -325,7 +331,10 @@ def test_pipeline_runner_requires_provider_token_for_api_fallback(monkeypatch) -
         head_ref="feature",
         head_sha="head-sha",
     )
-    runner = PipelineRecommendationRunner()
+    runner = PipelineRecommendationRunner(
+        model="gemini-2.5-flash",
+        models_endpoint="https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
 
     def fake_ensure(_: AppEvent) -> None:
         raise RuntimeError("git unavailable")

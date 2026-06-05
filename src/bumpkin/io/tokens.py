@@ -32,17 +32,7 @@ def resolve_models_endpoint() -> str:
     )
     if explicit and explicit.strip():
         return explicit.strip()
-
-    openrouter_token = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENROUTER_API")
-    if openrouter_token:
-        return OPENROUTER_ENDPOINT
-
-    if _looks_like_openrouter_token(os.getenv("MODELS_TOKEN")):
-        return OPENROUTER_ENDPOINT
-    if _looks_like_openrouter_token(os.getenv("GITHUB_MODELS_TOKEN")):
-        return OPENROUTER_ENDPOINT
-
-    return GITHUB_MODELS_ENDPOINT
+    return ""
 
 
 def resolve_models_token(*, endpoint: str | None = None) -> str:

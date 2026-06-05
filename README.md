@@ -27,7 +27,6 @@ Before you run it:
 - give the workflow:
   - `contents: write`
   - `pull-requests: read`
-- GitHub provides `GITHUB_TOKEN` automatically for repository reads and release publishing
 
 Example secret values:
 

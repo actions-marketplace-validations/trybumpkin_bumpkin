@@ -10,6 +10,7 @@ def test_readme_frames_release_scoped_flow_as_primary_story() -> None:
     assert "assets/hero.svg" in readme
     assert "release assistant" in readme
     assert "GitHub Action" in readme
+    assert "run-name:" in readme
     assert "operation: ${{ inputs.operation }}" in readme
     assert "release_preview" in readme
     assert "release_publish" in readme
@@ -18,7 +19,7 @@ def test_readme_frames_release_scoped_flow_as_primary_story() -> None:
     assert "MODELS_TOKEN" in readme
     assert "BUMPKIN_MODEL" in readme
     assert "BUMPKIN_MODELS_ENDPOINT" in readme
-    assert "trybumpkin/bumpkin-action" in readme
+    assert "uses: trybumpkin/bumpkin@v1" in readme
     assert "maintainer briefing" in readme
     assert "precomputed public changelog" in readme
     assert "ROADMAP.md" in readme
@@ -57,6 +58,7 @@ def test_marketplace_action_template_exists() -> None:
     ).read_text(encoding="utf-8")
 
     assert "# Bumpkin Action" in action_readme
+    assert "run-name:" in action_readme
     assert "preview_run_id" in action_readme
     assert "actions: read" in action_readme
     assert "MODELS_TOKEN" in action_readme

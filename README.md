@@ -53,6 +53,10 @@ on:
         options:
           - release_preview
           - release_publish
+      base_tag:
+        description: "Optional previous tag override"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -67,21 +71,22 @@ jobs:
           fetch-depth: 0
 
       - id: bumpkin
-        uses: ./
+        uses: trybumpkin/bumpkin-action@v1
         with:
           operation: ${{ inputs.operation }}
+          base_tag: ${{ inputs.base_tag }}
           model: ${{ secrets.BUMPKIN_MODEL }}
           fallback_model: ${{ secrets.BUMPKIN_FALLBACK_MODEL || '' }}
           models_endpoint: ${{ secrets.BUMPKIN_MODELS_ENDPOINT }}
           models_token: ${{ secrets.MODELS_TOKEN }}
+          request_timeout: "45"
+          model_call_min_interval_ms: "4000"
 
       - uses: actions/upload-artifact@v4
         with:
           name: bumpkin-release-notes
           path: ${{ steps.bumpkin.outputs.release_notes_path }}
 ```
-
-See [`bumpkin.yml.example`](bumpkin.yml.example) for a full workflow example.
 
 ## What you get back
 
@@ -92,6 +97,7 @@ For each release run, Bumpkin returns:
 - the release type
 - the included PR count
 - a release notes artifact
+- a run summary with `Why this bump`, versioning context, and key evidence
 
 ## Release modes
 
@@ -108,6 +114,7 @@ From the Actions tab:
 2. choose `release_preview`
 3. inspect the release notes artifact and summary
 4. run it again with `release_publish` when the preview looks right
+5. use `base_tag` when you want to preview from a specific release boundary
 
 ## More
 

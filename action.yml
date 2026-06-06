@@ -32,6 +32,14 @@ inputs:
     description: "Release notes artifact path for release_preview and release_publish."
     required: false
     default: "artifacts/release/bumpkin-release-notes.md"
+  candidate_output:
+    description: "Release candidate artifact path for release_preview and release_publish."
+    required: false
+    default: "artifacts/release/bumpkin-release-candidate.json"
+  preview_run_id:
+    description: "Optional preview workflow run id to publish from. Publish auto-discovers the latest matching preview when omitted."
+    required: false
+    default: ""
   provider:
     description: "Provider mode override. Leave as auto unless you are testing a specific path."
     required: false
@@ -91,6 +99,18 @@ outputs:
   release_target_sha:
     description: "Resolved release target SHA."
     value: ${{ steps.bumpkin.outputs.release_target_sha }}
+  release_candidate_path:
+    description: "Path to the generated release candidate artifact."
+    value: ${{ steps.bumpkin.outputs.release_candidate_path }}
+  release_candidate_fingerprint:
+    description: "Fingerprint for the verified release candidate."
+    value: ${{ steps.bumpkin.outputs.release_candidate_fingerprint }}
+  release_candidate_run_id:
+    description: "Preview workflow run id that produced the release candidate."
+    value: ${{ steps.bumpkin.outputs.release_candidate_run_id }}
+  release_candidate_artifact_name:
+    description: "Artifact name used for the release candidate upload."
+    value: ${{ steps.bumpkin.outputs.release_candidate_artifact_name }}
   release_url:
     description: "Published GitHub Release URL when operation is release_publish."
     value: ${{ steps.bumpkin.outputs.release_url }}
@@ -152,6 +172,7 @@ runs:
               --target-ref "${{ inputs.target_ref }}" \
               --base-tag "${{ inputs.base_tag }}" \
               --output-markdown "${{ inputs.output_markdown }}" \
+              --candidate-output "${{ inputs.candidate_output }}" \
               --request-timeout "${{ inputs.request_timeout }}"
             ;;
           release_publish)
@@ -162,6 +183,8 @@ runs:
               --target-ref "${{ inputs.target_ref }}" \
               --base-tag "${{ inputs.base_tag }}" \
               --output-markdown "${{ inputs.output_markdown }}" \
+              --candidate-output "${{ inputs.candidate_output }}" \
+              --preview-run-id "${{ inputs.preview_run_id }}" \
               --request-timeout "${{ inputs.request_timeout }}"
             ;;
           pr_recommendation)

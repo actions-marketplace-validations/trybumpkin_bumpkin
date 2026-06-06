@@ -15,12 +15,17 @@ on:
         description: "Optional previous tag override"
         required: false
         default: ""
+      preview_run_id:
+        description: "Optional preview workflow run id to publish from"
+        required: false
+        default: ""
 
 concurrency:
   group: bumpkin-release-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
+  actions: read
   contents: write
   pull-requests: read
 
@@ -39,6 +44,7 @@ jobs:
         with:
           operation: ${{ inputs.operation }}
           base_tag: ${{ inputs.base_tag }}
+          preview_run_id: ${{ inputs.preview_run_id }}
           model: ${{ secrets.BUMPKIN_MODEL }}
           fallback_model: ${{ secrets.BUMPKIN_FALLBACK_MODEL || '' }}
           models_endpoint: ${{ secrets.BUMPKIN_MODELS_ENDPOINT }}
@@ -53,6 +59,13 @@ jobs:
           path: ${{ steps.bumpkin.outputs.release_notes_path }}
           if-no-files-found: error
 
+      - name: Upload release candidate artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.bumpkin.outputs.release_candidate_artifact_name }}
+          path: ${{ steps.bumpkin.outputs.release_candidate_path }}
+          if-no-files-found: error
+
       - name: Print release summary
         shell: bash
         run: |
@@ -62,5 +75,7 @@ jobs:
           echo "next_tag=${{ steps.bumpkin.outputs.release_next_tag }}"
           echo "release_label=${{ steps.bumpkin.outputs.release_label }}"
           echo "release_pr_count=${{ steps.bumpkin.outputs.release_pr_count }}"
+          echo "release_candidate_run_id=${{ steps.bumpkin.outputs.release_candidate_run_id }}"
+          echo "release_candidate_path=${{ steps.bumpkin.outputs.release_candidate_path }}"
           echo "release_url=${{ steps.bumpkin.outputs.release_url }}"
           echo "tag_url=${{ steps.bumpkin.outputs.tag_url }}"

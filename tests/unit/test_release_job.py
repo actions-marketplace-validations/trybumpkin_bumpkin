@@ -4,6 +4,8 @@ import argparse
 from datetime import UTC, datetime
 from typing import cast
 
+import pytest
+
 from bumpkin.github.recommendations import MergeRecommendation, MergeRecommendationRequest
 from bumpkin.github.releases import ReleasePublishRequest, ReleasePublishResult
 from bumpkin.github.tags import TagPublishRequest, TagPublishResult
@@ -11,6 +13,8 @@ from bumpkin.release_job import (
     ReleaseExecutionResult,
     ReleasePlan,
     ReleaseScopedPullRequest,
+    _build_release_candidate,
+    _verify_release_candidate,
     prepare_release_plan,
     publish_release_plan,
     run_release_job,
@@ -449,6 +453,111 @@ def test_publish_release_plan_blocks_needs_review_batches() -> None:
     assert result.release_result is None
 
 
+def test_verify_release_candidate_reuses_preview_scope(monkeypatch) -> None:
+    pr_12 = _pull_request(
+        number=12,
+        title="Add release-scoped aggregation",
+        author_login="alice",
+        merged_at=datetime(2026, 6, 1, 10, 0, tzinfo=UTC),
+    )
+    plan = ReleasePlan(
+        repository="acme/repo",
+        target_ref="main",
+        target_sha="sha-main",
+        previous_tag="v1.2.3",
+        next_tag="v1.3.0",
+        release_label="MINOR",
+        pull_requests=(pr_12,),
+        recommendations=(),
+        release_notes="# v1.3.0\n",
+        notes=("Detected versioning scheme: semver.",),
+    )
+    candidate = _build_release_candidate(
+        plan=plan,
+        base_tag_input="",
+        source_operation="release_preview",
+        source_run_id="12345",
+    )
+    client = _FakeRepositoryClient(
+        tags=["v1.2.3"],
+        commits=["c1"],
+        pulls_by_commit={"c1": [12]},
+        pull_requests={12: pr_12},
+    )
+
+    monkeypatch.setattr(
+        "bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main")
+    )
+    monkeypatch.setattr("bumpkin.release_job.list_tags", list)
+
+    verified = _verify_release_candidate(
+        candidate=candidate,
+        repository="acme/repo",
+        github_token="token-123",
+        target_ref="main",
+        base_tag="",
+        client=client,
+    )
+
+    assert verified.previous_tag == "v1.2.3"
+    assert verified.next_tag == "v1.3.0"
+    assert [pull.number for pull in verified.pull_requests] == [12]
+
+
+def test_verify_release_candidate_rejects_changed_release_scope(monkeypatch) -> None:
+    pr_12 = _pull_request(
+        number=12,
+        title="Add release-scoped aggregation",
+        author_login="alice",
+        merged_at=datetime(2026, 6, 1, 10, 0, tzinfo=UTC),
+    )
+    pr_14 = _pull_request(
+        number=14,
+        title="Fix duplicate tag publishing",
+        author_login="bob",
+        merged_at=datetime(2026, 6, 2, 15, 30, tzinfo=UTC),
+    )
+    plan = ReleasePlan(
+        repository="acme/repo",
+        target_ref="main",
+        target_sha="sha-main",
+        previous_tag="v1.2.3",
+        next_tag="v1.3.0",
+        release_label="MINOR",
+        pull_requests=(pr_12,),
+        recommendations=(),
+        release_notes="# v1.3.0\n",
+        notes=("Detected versioning scheme: semver.",),
+    )
+    candidate = _build_release_candidate(
+        plan=plan,
+        base_tag_input="",
+        source_operation="release_preview",
+        source_run_id="12345",
+    )
+    client = _FakeRepositoryClient(
+        tags=["v1.2.3"],
+        commits=["c1", "c2"],
+        pulls_by_commit={"c1": [12], "c2": [14]},
+        pull_requests={12: pr_12, 14: pr_14},
+    )
+
+    monkeypatch.setattr(
+        "bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main")
+    )
+    monkeypatch.setattr("bumpkin.release_job.list_tags", list)
+
+    with pytest.raises(RuntimeError, match="release scope changed"):
+        _verify_release_candidate(
+            candidate=candidate,
+            repository="acme/repo",
+            github_token="token-123",
+            target_ref="main",
+            base_tag="",
+            client=client,
+        )
+
+
 def test_run_release_job_preview_writes_outputs_and_summary(tmp_path, monkeypatch) -> None:
     rendered_release_notes = (
         "# v1.3.0\n\n"
@@ -479,6 +588,7 @@ def test_run_release_job_preview_writes_outputs_and_summary(tmp_path, monkeypatc
         notes=(),
     )
     notes_path = tmp_path / "release-notes.md"
+    candidate_path = tmp_path / "release-candidate.json"
     output_path = tmp_path / "github-output.txt"
     summary_path = tmp_path / "step-summary.md"
 
@@ -494,13 +604,17 @@ def test_run_release_job_preview_writes_outputs_and_summary(tmp_path, monkeypatc
             target_ref="main",
             base_tag="",
             output_markdown=str(notes_path),
+            candidate_output=str(candidate_path),
+            preview_run_id="",
             request_timeout=15,
         )
     )
 
     assert exit_code == 0
     assert notes_path.read_text(encoding="utf-8") == rendered_release_notes
+    assert candidate_path.exists()
     assert "release_status<<__BUMPKIN_EOF__" in output_path.read_text(encoding="utf-8")
+    assert "release_candidate_path<<__BUMPKIN_EOF__" in output_path.read_text(encoding="utf-8")
     assert "planned" in output_path.read_text(encoding="utf-8")
     assert summary_path.read_text(encoding="utf-8").strip() == rendered_release_notes.strip()
 
@@ -534,6 +648,12 @@ def test_run_release_job_publish_writes_publish_outputs(tmp_path, monkeypatch) -
         release_notes=rendered_release_notes,
         notes=(),
     )
+    candidate = _build_release_candidate(
+        plan=plan,
+        base_tag_input="",
+        source_operation="release_preview",
+        source_run_id="555",
+    )
     execution = ReleaseExecutionResult(
         status="published",
         plan=plan,
@@ -550,12 +670,20 @@ def test_run_release_job_publish_writes_publish_outputs(tmp_path, monkeypatch) -
         ),
     )
     notes_path = tmp_path / "release-notes.md"
+    candidate_path = tmp_path / "release-candidate.json"
     output_path = tmp_path / "github-output.txt"
     summary_path = tmp_path / "step-summary.md"
 
     monkeypatch.setenv("GITHUB_OUTPUT", str(output_path))
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary_path))
-    monkeypatch.setattr("bumpkin.release_job.prepare_release_plan", lambda **_kwargs: plan)
+    monkeypatch.setattr(
+        "bumpkin.release_job._resolve_release_candidate",
+        lambda **_kwargs: candidate,
+    )
+    monkeypatch.setattr(
+        "bumpkin.release_job._verify_release_candidate",
+        lambda **_kwargs: plan,
+    )
     monkeypatch.setattr(
         "bumpkin.release_job.publish_release_plan",
         lambda *_args, **_kwargs: execution,
@@ -569,13 +697,46 @@ def test_run_release_job_publish_writes_publish_outputs(tmp_path, monkeypatch) -
             target_ref="main",
             base_tag="",
             output_markdown=str(notes_path),
+            candidate_output=str(candidate_path),
+            preview_run_id="555",
             request_timeout=15,
         )
     )
 
     assert exit_code == 0
+    assert candidate_path.exists()
     output_text = output_path.read_text(encoding="utf-8")
     assert "release_status<<__BUMPKIN_EOF__" in output_text
+    assert "release_candidate_run_id<<__BUMPKIN_EOF__" in output_text
     assert "published" in output_text
     assert "https://github.com/acme/repo/releases/tag/v1.3.0" in output_text
     assert summary_path.read_text(encoding="utf-8").strip() == rendered_release_notes.strip()
+
+
+def test_run_release_job_publish_requires_preview_candidate(tmp_path, monkeypatch) -> None:
+    notes_path = tmp_path / "release-notes.md"
+    candidate_path = tmp_path / "release-candidate.json"
+
+    monkeypatch.setattr(
+        "bumpkin.release_job._resolve_release_candidate",
+        lambda **_kwargs: (_ for _ in ()).throw(
+            RuntimeError(
+                "No matching release preview candidate was found. Run release_preview first or pass preview_run_id."
+            )
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="Run release_preview first"):
+        run_release_job(
+            argparse.Namespace(
+                operation="publish",
+                repository="acme/repo",
+                github_token="token-123",
+                target_ref="main",
+                base_tag="",
+                output_markdown=str(notes_path),
+                candidate_output=str(candidate_path),
+                preview_run_id="",
+                request_timeout=15,
+            )
+        )

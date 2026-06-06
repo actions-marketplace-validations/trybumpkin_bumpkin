@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import urllib.error
 import urllib.parse
@@ -36,6 +37,8 @@ _SECTION_BY_LABEL = {
     "NO_BUMP": "Maintenance",
 }
 _SECTION_ORDER = ("Breaking Changes", "Features", "Fixes", "Maintenance")
+_SUMMARY_LINE_RE = re.compile(r"(?im)^summary\s*:\s*(?P<value>.+)$")
+_REASONING_LINE_RE = re.compile(r"(?im)^reasoning\s*:\s*(?P<value>.+)$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +64,9 @@ class ReleaseRecommendationRecord:
     status: str
     label: str | None
     reason: str | None = None
+    summary: str | None = None
+    reasoning: str | None = None
+    evidence_lines: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -420,6 +426,7 @@ def _analyze_pull_requests(
                 )
             )
             continue
+        summary, reasoning, evidence_lines = _extract_recommendation_insights(recommendation.body)
         label = _normalize_label(recommendation.label)
         if label is None:
             recommendation_records.append(
@@ -429,6 +436,9 @@ def _analyze_pull_requests(
                     status="needs_review",
                     label=None,
                     reason="PR recommendation did not produce a normalized release label.",
+                    summary=summary,
+                    reasoning=reasoning,
+                    evidence_lines=evidence_lines,
                 )
             )
             continue
@@ -438,9 +448,170 @@ def _analyze_pull_requests(
                 recommendation=recommendation,
                 status="classified",
                 label=label,
+                summary=summary,
+                reasoning=reasoning,
+                evidence_lines=evidence_lines,
             )
         )
     return recommendation_records
+
+
+def _extract_first_match(pattern: re.Pattern[str], text: str) -> str | None:
+    match = pattern.search(text)
+    if not match:
+        return None
+    value = " ".join(match.group("value").split()).strip()
+    return value or None
+
+
+def _extract_findings_block_lines(body: str) -> tuple[str, ...]:
+    lines = body.splitlines()
+    findings_started = False
+    findings: list[str] = []
+    for raw_line in lines:
+        stripped = raw_line.strip()
+        if not findings_started:
+            if stripped.lower() == "findings:":
+                findings_started = True
+            continue
+        if not stripped:
+            if findings:
+                break
+            continue
+        if stripped.startswith("- "):
+            findings.append(stripped[2:].strip())
+            continue
+        if findings:
+            break
+    return tuple(line for line in findings if line)
+
+
+def _extract_recommendation_insights(body: str) -> tuple[str | None, str | None, tuple[str, ...]]:
+    return (
+        _extract_first_match(_SUMMARY_LINE_RE, body),
+        _extract_first_match(_REASONING_LINE_RE, body),
+        _extract_findings_block_lines(body),
+    )
+
+
+def _versioning_context_notes(notes: tuple[str, ...] | list[str]) -> list[str]:
+    relevant_prefixes = (
+        "Detected versioning scheme:",
+        "Zero-based policy:",
+        "CalVer detected:",
+        "Detected mixed tag prefixes",
+        "Tag source order was non-monotonic;",
+    )
+    return [note for note in notes if note.startswith(relevant_prefixes)]
+
+
+def _top_label_records(
+    recommendations: list[ReleaseRecommendationRecord],
+    release_label: str | None,
+) -> list[ReleaseRecommendationRecord]:
+    normalized_label = _normalize_label(release_label)
+    if normalized_label is None:
+        return []
+    return [
+        record
+        for record in recommendations
+        if record.status == "classified" and record.label == normalized_label
+    ]
+
+
+def _release_label_headline(release_label: str, matching_records: list[ReleaseRecommendationRecord]) -> str:
+    count = len(matching_records)
+    if release_label == "MAJOR":
+        return f"Breaking public API evidence was detected in {count} merged PR(s)."
+    if release_label == "MINOR":
+        return f"User-facing additive changes were detected in {count} merged PR(s)."
+    if release_label == "PATCH":
+        return f"Backward-compatible runtime changes were detected in {count} merged PR(s)."
+    if release_label == "NO_BUMP":
+        return f"All {count} merged PR(s) resolved to NO_BUMP."
+    return f"{count} merged PR(s) contributed to this release decision."
+
+
+def _build_release_why_lines(
+    *,
+    release_label: str | None,
+    recommendations: list[ReleaseRecommendationRecord],
+) -> list[str]:
+    normalized_label = _normalize_label(release_label)
+    if normalized_label is None:
+        return []
+    matching_records = _top_label_records(recommendations, normalized_label)
+    if not matching_records:
+        return []
+    lines = [_release_label_headline(normalized_label, matching_records)]
+    seen_reasoning: set[str] = set()
+    for record in matching_records:
+        reasoning = " ".join((record.reasoning or "").split()).strip()
+        if not reasoning or reasoning in seen_reasoning:
+            continue
+        seen_reasoning.add(reasoning)
+        lines.append(reasoning.rstrip(".") + ".")
+        if len(lines) >= 3:
+            break
+    return lines
+
+
+def _humanize_evidence_line(line: str) -> str:
+    parts = [part.strip() for part in line.split("|") if part.strip()]
+    if not parts:
+        return line.strip()
+    path = parts[0]
+    details: list[str] = []
+    for part in parts[1:]:
+        key, sep, value = part.partition("=")
+        if not sep:
+            continue
+        normalized_key = key.strip().lower()
+        normalized_value = " ".join(value.split()).strip()
+        if not normalized_value:
+            continue
+        if normalized_key in {"suggested", "severity"}:
+            continue
+        if normalized_key == "scope" and normalized_value.lower() == "non_runtime":
+            continue
+        if normalized_key == "rule":
+            details.append(normalized_value.replace("_", " "))
+            continue
+        if normalized_key == "scope":
+            details.append(normalized_value.replace("_", " "))
+            continue
+        details.append(normalized_value)
+    if not details:
+        return path
+    return f"{path} — {'; '.join(details)}"
+
+
+def _build_release_evidence_lines(
+    *,
+    release_label: str | None,
+    recommendations: list[ReleaseRecommendationRecord],
+    max_items: int = 3,
+) -> list[str]:
+    evidence: list[str] = []
+    seen: set[str] = set()
+    for record in _top_label_records(recommendations, release_label):
+        for raw_line in record.evidence_lines:
+            detail = _humanize_evidence_line(raw_line)
+            line = f"PR #{record.pull_request.number}: {detail}"
+            if line in seen:
+                continue
+            seen.add(line)
+            evidence.append(line)
+            if len(evidence) >= max_items:
+                return evidence
+        if record.summary:
+            line = f"PR #{record.pull_request.number}: {record.summary}"
+            if line not in seen:
+                seen.add(line)
+                evidence.append(line)
+                if len(evidence) >= max_items:
+                    return evidence
+    return evidence
 
 
 def _aggregate_release_label(recommendations: list[ReleaseRecommendationRecord]) -> str | None:
@@ -462,6 +633,7 @@ def _render_release_notes(
     next_tag: str | None,
     release_label: str | None,
     recommendations: list[ReleaseRecommendationRecord],
+    notes: tuple[str, ...] | list[str] = (),
 ) -> str:
     heading = next_tag or "Release Preview"
     lines: list[str] = [f"# {heading}", ""]
@@ -472,6 +644,27 @@ def _render_release_notes(
     if release_label:
         lines.append(f"Release type: {release_label}")
     lines.append(f"Included PRs: {len(recommendations)}")
+
+    why_lines = _build_release_why_lines(
+        release_label=release_label,
+        recommendations=recommendations,
+    )
+    if why_lines:
+        lines.extend(["", "## Why this bump"])
+        lines.extend(f"- {line}" for line in why_lines)
+
+    versioning_notes = _versioning_context_notes(notes)
+    if versioning_notes:
+        lines.extend(["", "## Versioning context"])
+        lines.extend(f"- {note}" for note in versioning_notes)
+
+    evidence_lines = _build_release_evidence_lines(
+        release_label=release_label,
+        recommendations=recommendations,
+    )
+    if evidence_lines:
+        lines.extend(["", "## Key evidence"])
+        lines.extend(f"- {line}" for line in evidence_lines)
 
     grouped: dict[str, list[ReleaseRecommendationRecord]] = {
         section: [] for section in _SECTION_ORDER
@@ -523,6 +716,7 @@ def _render_no_release_notes(
     previous_tag: str | None,
     release_label: str,
     recommendations: list[ReleaseRecommendationRecord],
+    notes: tuple[str, ...] | list[str] = (),
 ) -> str:
     lines = ["# Release Preview", ""]
     if previous_tag:
@@ -536,6 +730,11 @@ def _render_no_release_notes(
             "All included pull requests were classified as NO_BUMP.",
         ]
     )
+
+    versioning_notes = _versioning_context_notes(notes)
+    if versioning_notes:
+        lines.extend(["", "## Versioning context"])
+        lines.extend(f"- {note}" for note in versioning_notes)
 
     maintenance_records = [
         record for record in recommendations if _SECTION_BY_LABEL.get(record.label) == "Maintenance"
@@ -624,6 +823,7 @@ def prepare_release_plan(
             next_tag=None,
             release_label=None,
             recommendations=recommendations,
+            notes=notes,
         )
         return ReleasePlan(
             status="needs_review",
@@ -648,6 +848,7 @@ def prepare_release_plan(
             previous_tag=previous_tag,
             release_label=release_label,
             recommendations=recommendations,
+            notes=notes,
         )
         return ReleasePlan(
             status="skipped",
@@ -669,6 +870,7 @@ def prepare_release_plan(
         next_tag=next_tag,
         release_label=release_label,
         recommendations=recommendations,
+        notes=notes,
     )
     return ReleasePlan(
         status="planned",

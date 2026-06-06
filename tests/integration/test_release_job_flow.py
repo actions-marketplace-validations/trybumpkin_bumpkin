@@ -73,7 +73,15 @@ class _FakeRecommendationRunner:
         pr_number = int(request.payload["pull_request"]["number"])
         label = self._labels_by_pr[pr_number]
         return MergeRecommendation(
-            body=f"recommendation: {label}",
+            body=(
+                f"Recommendation : {label}\n"
+                "Summary        : files affected: src/api.ts; public=1, internal=0.\n\n"
+                f"Reasoning      : {label.lower()} evidence was detected from exported API analysis.\n\n"
+                "Findings:\n"
+                f"- src/api.ts | rule=export_symbol_{'removed' if label == 'MAJOR' else 'added'} | "
+                f"scope=public_api | suggested={label} | symbol=publicThing\n\n"
+                "Next version   : v1.2.3 -> v1.3.0\n"
+            ),
             label=label,
             current_version="v1.2.3",
         )
@@ -163,6 +171,8 @@ def test_release_job_flow_plans_and_publishes_release_batch(monkeypatch) -> None
     assert plan.next_tag == "v1.3.0"
     assert plan.release_label == "MINOR"
     assert plan.status == "planned"
+    assert "## Why this bump" in plan.release_notes
+    assert "## Key evidence" in plan.release_notes
     assert "## Features" in plan.release_notes
     assert "## Fixes" in plan.release_notes
     assert isinstance(result, ReleaseExecutionResult)
@@ -212,6 +222,7 @@ def test_release_job_flow_skips_publish_for_no_bump_batch(monkeypatch) -> None:
     assert plan.status == "skipped"
     assert plan.next_tag is None
     assert "No new release will be published for this batch." in plan.release_notes
+    assert "## Versioning context" in plan.release_notes
     assert result.status == "skipped"
     assert tag_publisher.calls == []
     assert release_publisher.calls == []

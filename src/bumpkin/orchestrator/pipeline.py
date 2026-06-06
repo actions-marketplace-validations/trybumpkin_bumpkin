@@ -34,6 +34,12 @@ def _capture_pr_comment_only() -> bool:
     return bool(_parse_optional_bool(os.getenv("BUMPKIN_CAPTURE_PR_COMMENT_ONLY")))
 
 
+def _emit_pipeline_log(message: str) -> None:
+    if _capture_pr_comment_only():
+        return
+    print(message)
+
+
 def _fallback_config() -> BumpkinConfig:
     return BumpkinConfig(
         ignore_paths=[],
@@ -223,11 +229,12 @@ def run(args: Namespace) -> int:
     contract_errors = validate_output_contract(output)
     if contract_errors:
         raise RuntimeError("Output contract validation failed: " + "; ".join(contract_errors))
-    print(json.dumps(output, indent=2))
+    if not _capture_pr_comment_only():
+        print(json.dumps(output, indent=2))
 
     pr_number = event_context.pr_number
     if pr_number is None:
-        print("No pull_request event payload detected; skipping PR comment posting.")
+        _emit_pipeline_log("No pull_request event payload detected; skipping PR comment posting.")
         return 0
 
     body = format_recommendation_comment(
@@ -266,7 +273,7 @@ def run(args: Namespace) -> int:
     )
     post_pr_comment(token=github_token, repo=repo, pr_number=pr_number, body=body)
     if _capture_pr_comment_only():
-        print(f"Generated recommendation body for PR #{pr_number} without posting a comment.")
+        return 0
     else:
         print(f"Posted recommendation comment to PR #{pr_number}.")
     return 0

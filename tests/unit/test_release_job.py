@@ -79,7 +79,16 @@ class _FakeRecommendationRunner:
         self.requested_pr_numbers.append(pr_number)
         label = self._labels_by_pr[pr_number]
         return MergeRecommendation(
-            body=f"recommendation: {label}",
+            body=(
+                f"Recommendation : {label}\n"
+                "Summary        : files affected: src/api.py, src/runtime.py; public=1, internal=1.\n\n"
+                f"Reasoning      : {label.lower()} evidence was detected from exported API analysis.\n\n"
+                "Findings:\n"
+                f"- src/api.py | rule=export_symbol_{'removed' if label == 'MAJOR' else 'added'} | "
+                f"scope=public_api | suggested={label} | symbol=publicThing\n"
+                "- src/runtime.py | rule=changed_file_path | scope=runtime_internal | suggested=PATCH | target=retry flow\n\n"
+                "Next version   : v1.2.3 -> v1.3.0\n"
+            ),
             label=label,
             current_version="v1.2.3",
         )
@@ -170,6 +179,12 @@ def test_prepare_release_plan_builds_release_batch(monkeypatch) -> None:
     assert plan.status == "planned"
     assert plan.target_sha == "sha-main"
     assert [pull.number for pull in plan.pull_requests] == [12, 14]
+    assert "## Why this bump" in plan.release_notes
+    assert "- User-facing additive changes were detected in 1 merged PR(s)." in plan.release_notes
+    assert "## Versioning context" in plan.release_notes
+    assert "- Detected versioning scheme: semver." in plan.release_notes
+    assert "## Key evidence" in plan.release_notes
+    assert "- PR #12: src/api.py — export symbol added; public api; publicThing" in plan.release_notes
     assert "## Features" in plan.release_notes
     assert "## Fixes" in plan.release_notes
     assert "- [PR #12](https://github.com/acme/repo/pull/12) by @alice: Add release-scoped aggregation" in plan.release_notes
@@ -241,7 +256,46 @@ def test_prepare_release_plan_returns_no_release_plan_for_no_bump_batch(monkeypa
     assert plan.status == "skipped"
     assert "No new release will be published for this batch." in plan.release_notes
     assert "All included pull requests were classified as NO_BUMP." in plan.release_notes
+    assert "## Versioning context" in plan.release_notes
+    assert "- Detected versioning scheme: semver." in plan.release_notes
     assert "## Included PRs" in plan.release_notes
+
+
+def test_prepare_release_plan_explains_zero_based_versioning_context(monkeypatch) -> None:
+    pr_25 = _pull_request(
+        number=25,
+        title="Remove exported legacy API",
+        author_login="alice",
+        merged_at=datetime(2026, 6, 3, 10, 0, tzinfo=UTC),
+    )
+    client = _FakeRepositoryClient(
+        tags=["0.12.1"],
+        commits=["c1"],
+        pulls_by_commit={"c1": [25]},
+        pull_requests={25: pr_25},
+    )
+    runner = _FakeRecommendationRunner({25: "MAJOR"})
+
+    monkeypatch.setattr("bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main"))
+    monkeypatch.setattr("bumpkin.release_job.list_tags", lambda: [])
+
+    plan = prepare_release_plan(
+        repository="acme/repo",
+        github_token="token-123",
+        target_ref="main",
+        base_tag="",
+        client=client,
+        recommendation_runner=runner,
+    )
+
+    assert plan.previous_tag == "0.12.1"
+    assert plan.next_tag == "0.13.0"
+    assert plan.release_label == "MAJOR"
+    assert "- Detected versioning scheme: zero-based." in plan.release_notes
+    assert (
+        "- Zero-based policy: breaking changes before 1.0.0 bump the minor version."
+        in plan.release_notes
+    )
 
 
 def test_prepare_release_plan_returns_needs_review_for_unresolved_batch(monkeypatch) -> None:
@@ -280,6 +334,15 @@ def test_prepare_release_plan_returns_needs_review_for_unresolved_batch(monkeypa
 
 
 def test_publish_release_plan_accepts_existing_tag_and_updates_release() -> None:
+    rendered_release_notes = (
+        "# v1.3.0\n\n"
+        "Previous tag: v1.2.3\n"
+        "Next tag: v1.3.0\n"
+        "Release type: MINOR\n"
+        "Included PRs: 1\n\n"
+        "## Why this bump\n"
+        "- User-facing additive changes were detected in 1 merged PR(s).\n"
+    )
     plan = ReleasePlan(
         repository="acme/repo",
         target_ref="main",
@@ -353,6 +416,15 @@ def test_publish_release_plan_blocks_needs_review_batches() -> None:
 
 
 def test_run_release_job_preview_writes_outputs_and_summary(tmp_path, monkeypatch) -> None:
+    rendered_release_notes = (
+        "# v1.3.0\n\n"
+        "Previous tag: v1.2.3\n"
+        "Next tag: v1.3.0\n"
+        "Release type: MINOR\n"
+        "Included PRs: 1\n\n"
+        "## Why this bump\n"
+        "- User-facing additive changes were detected in 1 merged PR(s).\n"
+    )
     plan = ReleasePlan(
         repository="acme/repo",
         target_ref="main",
@@ -369,7 +441,7 @@ def test_run_release_job_preview_writes_outputs_and_summary(tmp_path, monkeypatc
             ),
         ),
         recommendations=(),
-        release_notes="# v1.3.0\n\nHello release.\n",
+        release_notes=rendered_release_notes,
         notes=(),
     )
     notes_path = tmp_path / "release-notes.md"
@@ -393,13 +465,22 @@ def test_run_release_job_preview_writes_outputs_and_summary(tmp_path, monkeypatc
     )
 
     assert exit_code == 0
-    assert notes_path.read_text(encoding="utf-8") == "# v1.3.0\n\nHello release.\n"
+    assert notes_path.read_text(encoding="utf-8") == rendered_release_notes
     assert "release_status<<__BUMPKIN_EOF__" in output_path.read_text(encoding="utf-8")
     assert "planned" in output_path.read_text(encoding="utf-8")
-    assert summary_path.read_text(encoding="utf-8").strip() == "# v1.3.0\n\nHello release."
+    assert summary_path.read_text(encoding="utf-8").strip() == rendered_release_notes.strip()
 
 
 def test_run_release_job_publish_writes_publish_outputs(tmp_path, monkeypatch) -> None:
+    rendered_release_notes = (
+        "# v1.3.0\n\n"
+        "Previous tag: v1.2.3\n"
+        "Next tag: v1.3.0\n"
+        "Release type: MINOR\n"
+        "Included PRs: 1\n\n"
+        "## Why this bump\n"
+        "- User-facing additive changes were detected in 1 merged PR(s).\n"
+    )
     plan = ReleasePlan(
         repository="acme/repo",
         target_ref="main",
@@ -416,7 +497,7 @@ def test_run_release_job_publish_writes_publish_outputs(tmp_path, monkeypatch) -
             ),
         ),
         recommendations=(),
-        release_notes="# v1.3.0\n\nPublished release.\n",
+        release_notes=rendered_release_notes,
         notes=(),
     )
     execution = ReleaseExecutionResult(
@@ -463,4 +544,4 @@ def test_run_release_job_publish_writes_publish_outputs(tmp_path, monkeypatch) -
     assert "release_status<<__BUMPKIN_EOF__" in output_text
     assert "published" in output_text
     assert "https://github.com/acme/repo/releases/tag/v1.3.0" in output_text
-    assert summary_path.read_text(encoding="utf-8").strip() == "# v1.3.0\n\nPublished release."
+    assert summary_path.read_text(encoding="utf-8").strip() == rendered_release_notes.strip()

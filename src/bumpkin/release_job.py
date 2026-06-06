@@ -1194,7 +1194,7 @@ def _render_release_notes(
         recommendations=recommendations,
     )
     if why_lines:
-        lines.extend(["", "## Why this bump"])
+        lines.extend(["", "## Release rationale"])
         lines.extend(f"- {line}" for line in why_lines)
 
     versioning_notes = _versioning_context_notes(notes)

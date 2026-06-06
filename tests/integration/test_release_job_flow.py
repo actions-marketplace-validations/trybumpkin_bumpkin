@@ -175,7 +175,7 @@ def test_release_job_flow_plans_and_publishes_release_batch(monkeypatch) -> None
     assert plan.next_tag == "v1.3.0"
     assert plan.release_label == "MINOR"
     assert plan.status == "planned"
-    assert "## Why this bump" in plan.release_notes
+    assert "## Release rationale" in plan.release_notes
     assert "## Key evidence" in plan.release_notes
     assert "## Features" in plan.release_notes
     assert "## Fixes" in plan.release_notes

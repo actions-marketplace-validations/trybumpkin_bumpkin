@@ -186,7 +186,7 @@ def test_prepare_release_plan_builds_release_batch(monkeypatch) -> None:
     assert plan.status == "planned"
     assert plan.target_sha == "sha-main"
     assert [pull.number for pull in plan.pull_requests] == [12, 14]
-    assert "## Why this bump" in plan.release_notes
+    assert "## Release rationale" in plan.release_notes
     assert "- User-facing additive changes were detected in 1 merged PR(s)." in plan.release_notes
     assert "## Versioning context" in plan.release_notes
     assert "- Detected versioning scheme: semver." in plan.release_notes
@@ -565,7 +565,7 @@ def test_run_release_job_preview_writes_outputs_and_summary(tmp_path, monkeypatc
         "Next tag: v1.3.0\n"
         "Release type: MINOR\n"
         "Included PRs: 1\n\n"
-        "## Why this bump\n"
+        "## Release rationale\n"
         "- User-facing additive changes were detected in 1 merged PR(s).\n"
     )
     plan = ReleasePlan(
@@ -626,7 +626,7 @@ def test_run_release_job_publish_writes_publish_outputs(tmp_path, monkeypatch) -
         "Next tag: v1.3.0\n"
         "Release type: MINOR\n"
         "Included PRs: 1\n\n"
-        "## Why this bump\n"
+        "## Release rationale\n"
         "- User-facing additive changes were detected in 1 merged PR(s).\n"
     )
     plan = ReleasePlan(

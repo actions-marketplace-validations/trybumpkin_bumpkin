@@ -4,7 +4,6 @@
 
 Bumpkin is a release assistant that analyzes merged PRs, determines version bumps, and writes release notes - no commit conventions required.
 
-Built for release-scoped GitHub Actions.
 
 ## What it does
 
@@ -26,6 +25,7 @@ Before you run it:
   - `BUMPKIN_MODEL`
   - `BUMPKIN_MODELS_ENDPOINT`
 - give the workflow:
+  - `actions: read`
   - `contents: write`
   - `pull-requests: read`
 
@@ -57,8 +57,13 @@ on:
         description: "Optional previous tag override"
         required: false
         default: ""
+      preview_run_id:
+        description: "Optional preview workflow run id to publish from"
+        required: false
+        default: ""
 
 permissions:
+  actions: read
   contents: write
   pull-requests: read
 
@@ -75,6 +80,7 @@ jobs:
         with:
           operation: ${{ inputs.operation }}
           base_tag: ${{ inputs.base_tag }}
+          preview_run_id: ${{ inputs.preview_run_id }}
           model: ${{ secrets.BUMPKIN_MODEL }}
           fallback_model: ${{ secrets.BUMPKIN_FALLBACK_MODEL || '' }}
           models_endpoint: ${{ secrets.BUMPKIN_MODELS_ENDPOINT }}
@@ -86,6 +92,11 @@ jobs:
         with:
           name: bumpkin-release-notes
           path: ${{ steps.bumpkin.outputs.release_notes_path }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.bumpkin.outputs.release_candidate_artifact_name }}
+          path: ${{ steps.bumpkin.outputs.release_candidate_path }}
 ```
 
 ## What you get back
@@ -97,12 +108,12 @@ For each release run, Bumpkin returns:
 - the release type
 - the included PR count
 - a release notes artifact
-- a run summary with `Why this bump`, versioning context, and key evidence
+- a run summary with `Release rationale`, versioning context, and key evidence
 
 ## Release modes
 
-- `release_preview` builds the release plan and notes without publishing.
-- `release_publish` creates the tag and GitHub Release.
+- `release_preview` builds the release plan, notes, and a release candidate artifact without publishing.
+- `release_publish` verifies a saved preview candidate and then creates the tag and GitHub Release.
 - `NO_BUMP` means no release is needed.
 - `needs_review` means the batch should be reviewed before publishing.
 
@@ -112,9 +123,10 @@ From the Actions tab:
 
 1. run `Bumpkin Release`
 2. choose `release_preview`
-3. inspect the release notes artifact and summary
+3. inspect the release notes artifact, release candidate artifact, and summary
 4. run it again with `release_publish` when the preview looks right
-5. use `base_tag` when you want to preview from a specific release boundary
+5. pass `preview_run_id` when you want to publish a specific preview run
+6. use `base_tag` when you want to preview from a specific release boundary
 
 ## More
 

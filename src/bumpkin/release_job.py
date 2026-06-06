@@ -583,7 +583,7 @@ def _humanize_evidence_line(line: str) -> str:
         details.append(normalized_value)
     if not details:
         return path
-    return f"{path} — {'; '.join(details)}"
+    return f"{path} - {'; '.join(details)}"
 
 
 def _build_release_evidence_lines(
@@ -594,6 +594,7 @@ def _build_release_evidence_lines(
 ) -> list[str]:
     evidence: list[str] = []
     seen: set[str] = set()
+    has_detailed_evidence = False
     for record in _top_label_records(recommendations, release_label):
         for raw_line in record.evidence_lines:
             detail = _humanize_evidence_line(raw_line)
@@ -602,9 +603,10 @@ def _build_release_evidence_lines(
                 continue
             seen.add(line)
             evidence.append(line)
+            has_detailed_evidence = True
             if len(evidence) >= max_items:
                 return evidence
-        if record.summary:
+        if record.summary and not has_detailed_evidence:
             line = f"PR #{record.pull_request.number}: {record.summary}"
             if line not in seen:
                 seen.add(line)

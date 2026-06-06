@@ -184,7 +184,7 @@ def test_prepare_release_plan_builds_release_batch(monkeypatch) -> None:
     assert "## Versioning context" in plan.release_notes
     assert "- Detected versioning scheme: semver." in plan.release_notes
     assert "## Key evidence" in plan.release_notes
-    assert "- PR #12: src/api.py — export symbol added; public api; publicThing" in plan.release_notes
+    assert "- PR #12: src/api.py - export symbol added; public api; publicThing" in plan.release_notes
     assert "## Features" in plan.release_notes
     assert "## Fixes" in plan.release_notes
     assert "- [PR #12](https://github.com/acme/repo/pull/12) by @alice: Add release-scoped aggregation" in plan.release_notes

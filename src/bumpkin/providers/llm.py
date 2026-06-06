@@ -92,7 +92,7 @@ def _normalize_request_endpoint(endpoint: str) -> str:
     if not normalized:
         return normalized
     lowered = normalized.lower()
-    if lowered.endswith("/chat/completions") or lowered.endswith("/responses"):
+    if lowered.endswith(("/chat/completions", "/responses")):
         return normalized
     return normalized.rstrip("/") + "/chat/completions"
 

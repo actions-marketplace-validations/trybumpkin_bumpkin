@@ -5,9 +5,7 @@ from bumpkin.providers import llm
 
 def test_normalize_request_endpoint_accepts_openai_base_url() -> None:
     assert (
-        llm._normalize_request_endpoint(
-            "https://generativelanguage.googleapis.com/v1beta/openai/"
-        )
+        llm._normalize_request_endpoint("https://generativelanguage.googleapis.com/v1beta/openai/")
         == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
     )
 

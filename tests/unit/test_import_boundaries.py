@@ -42,7 +42,11 @@ EXPECTED_LEGACY_TO_PACKAGE_IMPORTS = {
 APP_ALLOWED_BUMPKIN_IMPORT_PREFIXES = ("bumpkin.app", "bumpkin.licensing")
 LICENSING_ALLOWED_BUMPKIN_IMPORT_PREFIXES = ("bumpkin.licensing",)
 APP_MODULE_ALLOWED_IMPORT_PREFIXES = {
-    "recommendations.py": (*APP_ALLOWED_BUMPKIN_IMPORT_PREFIXES, "bumpkin.orchestrator"),
+    "recommendations.py": (
+        *APP_ALLOWED_BUMPKIN_IMPORT_PREFIXES,
+        "bumpkin.io",
+        "bumpkin.orchestrator",
+    ),
 }
 
 

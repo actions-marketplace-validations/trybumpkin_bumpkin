@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import hmac
 import json
-from hashlib import sha256
 from datetime import UTC, datetime
+from hashlib import sha256
 
 from bumpkin.app.reactions import GitHubIssueCommentPublisher, ReactionPublishRequest
 from bumpkin.app.recommendations import (
@@ -13,9 +13,9 @@ from bumpkin.app.recommendations import (
 )
 from bumpkin.app.releases import ReleasePublishRequest, ReleasePublishResult
 from bumpkin.app.runtime import load_app_runtime_config
-from bumpkin.app.workflows import WorkflowDispatchRequest, WorkflowDispatchResult
 from bumpkin.app.tags import GitHubTagPublisher, TagPublishRequest, TagPublishResult
 from bumpkin.app.webhook import build_app_webhook_service
+from bumpkin.app.workflows import WorkflowDispatchRequest, WorkflowDispatchResult
 
 
 class _FakeReactionPublisher:
@@ -438,7 +438,7 @@ def test_webhook_service_reacts_to_non_bump_command_with_ack(tmp_path) -> None:
         headers=_headers(
             secret=config.webhook_secret,
             body=body,
-        delivery_id="delivery-explain-1",
+            delivery_id="delivery-explain-1",
             event_name="issue_comment",
         ),
         raw_body=body,

@@ -20,8 +20,8 @@ from bumpkin.app.ingress import (
 )
 from bumpkin.app.persistence import AppStateStore, EphemeralAppStateStore, build_app_state_store
 from bumpkin.app.reactions import (
-    GitHubIssueCommentReactionPublisher,
     GitHubIssueCommentPublisher,
+    GitHubIssueCommentReactionPublisher,
     NoopReactionPublisher,
     ReactionPublisher,
     ReactionPublishRequest,
@@ -39,8 +39,8 @@ from bumpkin.app.release_notes import render_release_notes
 from bumpkin.app.releases import (
     GitHubReleasePublisher,
     NoopReleasePublisher,
-    ReleasePublishRequest,
     ReleasePublisher,
+    ReleasePublishRequest,
 )
 from bumpkin.app.runtime import (
     APP_MODE_SHELL,
@@ -58,8 +58,8 @@ from bumpkin.app.types import AppEvent, SlashCommand
 from bumpkin.app.workflows import (
     GitHubWorkflowDispatcher,
     NoopWorkflowDispatcher,
-    WorkflowDispatchRequest,
     WorkflowDispatcher,
+    WorkflowDispatchRequest,
 )
 
 _HEADER_EVENT_NAME = "x-github-event"
@@ -1108,9 +1108,7 @@ class AppWebhookService:
                     )
                 release_status = str(response_payload.get("release", {}).get("status", "")).strip()
                 response_payload["reaction"] = {
-                    "type": "release_published"
-                    if release_status == "published"
-                    else "release_cut",
+                    "type": "release_published" if release_status == "published" else "release_cut",
                     "applied": release_status == "published",
                     "tag_name": response_payload.get("release", {}).get("tag_name"),
                     "release_url": response_payload.get("release", {}).get("release_url"),
@@ -1118,7 +1116,11 @@ class AppWebhookService:
                     "message": (
                         f"Published release {response_payload.get('release', {}).get('tag_name')}"
                         if release_status == "published"
-                        else str(response_payload.get("release", {}).get("reason", "release not published"))
+                        else str(
+                            response_payload.get("release", {}).get(
+                                "reason", "release not published"
+                            )
+                        )
                     ),
                 }
             else:
@@ -1136,7 +1138,9 @@ class AppWebhookService:
                         backlog_items = []
                     if backlog_items:
                         aggregate = aggregate_release_backlog(backlog_items)
-                        recommended_label = aggregate.recommended_label or aggregate.aggregated_label
+                        recommended_label = (
+                            aggregate.recommended_label or aggregate.aggregated_label
+                        )
                         recommended_current_version = aggregate.current_version
                         release_backlog_ids_to_include = aggregate.considered_item_ids
                         release_target_merge_sha = aggregate.target_merge_commit_sha
@@ -1312,7 +1316,9 @@ def build_app_webhook_service(
         state_store=state_store
         or (
             EphemeralAppStateStore()
-            if config.app_mode == APP_MODE_SHELL and config.db_path is None and config.database_url is None
+            if config.app_mode == APP_MODE_SHELL
+            and config.db_path is None
+            and config.database_url is None
             else build_app_state_store(
                 db_path=config.db_path,
                 database_url=config.database_url,

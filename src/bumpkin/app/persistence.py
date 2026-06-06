@@ -4,7 +4,7 @@ import json
 import re
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, Self, cast
 
@@ -260,7 +260,9 @@ def _clean_optional_text(value: str | None) -> str | None:
     return normalized or None
 
 
-def _sqlite_table_has_column(connection: sqlite3.Connection, table_name: str, column_name: str) -> bool:
+def _sqlite_table_has_column(
+    connection: sqlite3.Connection, table_name: str, column_name: str
+) -> bool:
     rows = connection.execute(f"PRAGMA table_info({table_name})").fetchall()
     return any(str(row[1]) == column_name for row in rows)
 
@@ -277,7 +279,9 @@ def _sqlite_add_column_if_missing(
     connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_definition}")
 
 
-def _postgres_table_has_column(connection: PsycopgConnection[Any], *, table_name: str, column_name: str) -> bool:
+def _postgres_table_has_column(
+    connection: PsycopgConnection[Any], *, table_name: str, column_name: str
+) -> bool:
     with connection.cursor() as cursor:
         cursor.execute(
             """
@@ -303,7 +307,9 @@ def _postgres_add_column_if_missing(
     if _postgres_table_has_column(connection, table_name=table_name, column_name=column_name):
         return
     with connection.cursor() as cursor:
-        cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS {column_definition}")
+        cursor.execute(
+            cast("Any", f"ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS {column_definition}")
+        )
 
 
 def _json_dump(payload: dict[str, Any]) -> str:
@@ -1095,7 +1101,9 @@ class SqliteAppStateStore:
                 pull_request_url=str(row["pull_request_url"])
                 if row["pull_request_url"] is not None
                 else None,
-                release_summary=str(row["release_summary"]) if row["release_summary"] is not None else None,
+                release_summary=str(row["release_summary"])
+                if row["release_summary"] is not None
+                else None,
                 source_event_id=str(row["source_event_id"])
                 if row["source_event_id"] is not None
                 else None,
@@ -2263,7 +2271,6 @@ class EphemeralAppStateStore:
         event: AppEvent,
         status: str = DEFAULT_EVENT_STATUS,
     ) -> bool:
-        key = (event.event.strip().lower(), envelope.event_id.strip())
         provider_key = ("github", envelope.event_id.strip())
         if provider_key in self._events:
             return False
@@ -2402,7 +2409,7 @@ class EphemeralAppStateStore:
             recommended_current_version=_normalize_semver_token(recommended_current_version or "")
             if recommended_current_version is not None
             else None,
-            merged_at=_normalize_timestamp(merged_at or datetime.now(timezone.utc)),
+            merged_at=_normalize_timestamp(merged_at or datetime.now(UTC)),
             included_in_release_tag=None,
             included_at=None,
             source_event_id=source_event_id,
@@ -2438,7 +2445,7 @@ class EphemeralAppStateStore:
     ) -> int:
         normalized_repository = repository.strip()
         normalized_release_tag = release_tag.strip()
-        normalized_included_at = _normalize_timestamp(included_at or datetime.now(timezone.utc))
+        normalized_included_at = _normalize_timestamp(included_at or datetime.now(UTC))
         target_ids = {int(value) for value in backlog_ids if int(value) > 0}
         updated = 0
         for key, item in list(self._backlog.items()):

@@ -274,6 +274,5 @@ def run(args: Namespace) -> int:
     post_pr_comment(token=github_token, repo=repo, pr_number=pr_number, body=body)
     if _capture_pr_comment_only():
         return 0
-    else:
-        print(f"Posted recommendation comment to PR #{pr_number}.")
+    print(f"Posted recommendation comment to PR #{pr_number}.")
     return 0

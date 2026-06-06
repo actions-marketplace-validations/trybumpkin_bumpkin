@@ -49,7 +49,7 @@ def test_example_release_workflow_uses_release_scoped_operation() -> None:
     assert bumpkin_step["with"]["operation"] == "${{ inputs.operation }}"
     assert bumpkin_step["with"]["model"] == "${{ secrets.BUMPKIN_MODEL }}"
     assert bumpkin_step["with"]["models_endpoint"] == "${{ secrets.BUMPKIN_MODELS_ENDPOINT }}"
-    assert bumpkin_step["with"]["models_token"] == "${{ secrets.MODELS_TOKEN }}"
+    assert bumpkin_step["with"]["models_token"] == "${{ secrets.MODELS_TOKEN }}"  # noqa: S105
     assert "provider" not in bumpkin_step["with"]
 
 
@@ -64,7 +64,9 @@ def test_action_runtime_and_ci_use_separate_requirements_files() -> None:
 
 def test_ci_and_evals_workflows_are_separated() -> None:
     repo_root = Path(__file__).resolve().parents[2]
-    ci = yaml.safe_load((repo_root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8"))
+    ci = yaml.safe_load(
+        (repo_root / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    )
     evals = yaml.safe_load(
         (repo_root / ".github" / "workflows" / "evals.yml").read_text(encoding="utf-8")
     )

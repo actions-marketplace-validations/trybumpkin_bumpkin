@@ -56,7 +56,7 @@ def render_release_notes(
     release_label: str | None = None,
 ) -> str:
     normalized_tag = tag_name.strip() or "release"
-    grouped: "OrderedDict[str, list[ReleaseBacklogItem]]" = OrderedDict(
+    grouped: OrderedDict[str, list[ReleaseBacklogItem]] = OrderedDict(
         (section, []) for section in _SECTION_ORDER
     )
     contributors: list[str] = []

@@ -60,7 +60,9 @@ def format_reaction_comment(request: ReactionPublishRequest) -> str:
             message = str(reaction.get("message", "")).strip()
             if message:
                 lines.append(f"Message: {message}")
-            lines.append(f"Result: `{'applied' if bool(reaction.get('applied')) else 'not_applied'}`")
+            lines.append(
+                f"Result: `{'applied' if bool(reaction.get('applied')) else 'not_applied'}`"
+            )
         elif reaction_type == "workflow_dispatch_requested":
             operation = str(reaction.get("operation", "")).strip()
             if operation:

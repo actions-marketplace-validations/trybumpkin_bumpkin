@@ -11,7 +11,7 @@ import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Protocol, cast
+from typing import Protocol, cast
 
 from bumpkin.github.recommendations import (
     MergeRecommendation,
@@ -21,11 +21,16 @@ from bumpkin.github.recommendations import (
 )
 from bumpkin.github.releases import (
     GitHubReleasePublisher,
+    ReleasePublisher,
     ReleasePublishRequest,
     ReleasePublishResult,
-    ReleasePublisher,
 )
-from bumpkin.github.tags import GitHubTagPublisher, TagPublishRequest, TagPublishResult, TagPublisher
+from bumpkin.github.tags import (
+    GitHubTagPublisher,
+    TagPublisher,
+    TagPublishRequest,
+    TagPublishResult,
+)
 from bumpkin.github.types import AppEvent
 from bumpkin.versioning.tags import detect_next_version, list_tags, resolve_current_tag
 
@@ -237,7 +242,9 @@ class GitHubRepositoryClient:
                 f"https://api.github.com/repos/{self._repository}/tags"
                 f"?per_page={per_page}&page={page}"
             )
-            payload = _json_request(token=self._token, url=url, timeout_seconds=self._timeout_seconds)
+            payload = _json_request(
+                token=self._token, url=url, timeout_seconds=self._timeout_seconds
+            )
             if not isinstance(payload, list):
                 break
             items = cast("list[object]", payload)
@@ -295,14 +302,18 @@ class GitHubRepositoryClient:
         url = f"https://api.github.com/repos/{self._repository}/pulls/{number}"
         payload = _json_request(token=self._token, url=url, timeout_seconds=self._timeout_seconds)
         if not isinstance(payload, dict):
-            raise RuntimeError(f"GitHub pull request API returned an unexpected payload for PR #{number}.")
+            raise RuntimeError(
+                f"GitHub pull request API returned an unexpected payload for PR #{number}."
+            )
         payload_map = cast("dict[str, object]", payload)
         title = str(payload_map.get("title", "")).strip()
         html_url = str(payload_map.get("html_url", "")).strip()
         merge_commit_sha = str(payload_map.get("merge_commit_sha", "")).strip()
         merged_at_raw = str(payload_map.get("merged_at", "")).strip()
         if not merge_commit_sha or not merged_at_raw:
-            raise RuntimeError(f"PR #{number} is missing merged metadata required for a release batch.")
+            raise RuntimeError(
+                f"PR #{number} is missing merged metadata required for a release batch."
+            )
         user = payload_map.get("user")
         author_login = None
         if isinstance(user, dict):
@@ -391,9 +402,7 @@ def _discover_pull_requests(
     unique_numbers = sorted({number for number in pull_numbers if number > 0})
     pull_requests = [client.get_pull_request(number) for number in unique_numbers]
     merged_pull_requests = [
-        pull_request
-        for pull_request in pull_requests
-        if pull_request.merge_commit_sha.strip()
+        pull_request for pull_request in pull_requests if pull_request.merge_commit_sha.strip()
     ]
     merged_pull_requests.sort(key=lambda item: (item.merged_at, item.number))
     return merged_pull_requests
@@ -519,7 +528,9 @@ def _top_label_records(
     ]
 
 
-def _release_label_headline(release_label: str, matching_records: list[ReleaseRecommendationRecord]) -> str:
+def _release_label_headline(
+    release_label: str, matching_records: list[ReleaseRecommendationRecord]
+) -> str:
     count = len(matching_records)
     if release_label == "MAJOR":
         return f"Breaking public API evidence was detected in {count} merged PR(s)."
@@ -692,7 +703,9 @@ def _render_release_notes(
         lines.extend(["", f"## {section}"])
         for record in section_records:
             pull_request = record.pull_request
-            author = f"@{pull_request.author_login}" if pull_request.author_login else "unknown author"
+            author = (
+                f"@{pull_request.author_login}" if pull_request.author_login else "unknown author"
+            )
             lines.append(
                 f"- [PR #{pull_request.number}]({pull_request.url}) by {author}: {pull_request.title.rstrip('.')}"
             )
@@ -701,7 +714,9 @@ def _render_release_notes(
         lines.extend(["", "## Needs Review"])
         for record in unresolved:
             pull_request = record.pull_request
-            author = f"@{pull_request.author_login}" if pull_request.author_login else "unknown author"
+            author = (
+                f"@{pull_request.author_login}" if pull_request.author_login else "unknown author"
+            )
             reason = (record.reason or record.status).rstrip(".")
             lines.append(
                 f"- [PR #{pull_request.number}]({pull_request.url}) by {author}: {pull_request.title.rstrip('.')} ({reason})"
@@ -739,13 +754,17 @@ def _render_no_release_notes(
         lines.extend(f"- {note}" for note in versioning_notes)
 
     maintenance_records = [
-        record for record in recommendations if _SECTION_BY_LABEL.get(record.label) == "Maintenance"
+        record
+        for record in recommendations
+        if record.label is not None and _SECTION_BY_LABEL.get(record.label) == "Maintenance"
     ]
     if maintenance_records:
         lines.extend(["", "## Included PRs"])
         for record in maintenance_records:
             pull_request = record.pull_request
-            author = f"@{pull_request.author_login}" if pull_request.author_login else "unknown author"
+            author = (
+                f"@{pull_request.author_login}" if pull_request.author_login else "unknown author"
+            )
             lines.append(
                 f"- [PR #{pull_request.number}]({pull_request.url}) by {author}: {pull_request.title.rstrip('.')}"
             )
@@ -785,7 +804,9 @@ def prepare_release_plan(
     )
     notes.extend(current_tag_notes)
     if previous_tag is None:
-        raise RuntimeError("No previous tag found. Create an initial release tag or pass --base-tag.")
+        raise RuntimeError(
+            "No previous tag found. Create an initial release tag or pass --base-tag."
+        )
 
     pull_requests = _discover_pull_requests(
         client=api_client,
@@ -819,7 +840,9 @@ def prepare_release_plan(
     unresolved_records = [record for record in recommendations if record.status != "classified"]
     release_label = _aggregate_release_label(recommendations)
     if release_label is None and unresolved_records:
-        notes.append("Release scope contains unresolved pull requests that need review before publish.")
+        notes.append(
+            "Release scope contains unresolved pull requests that need review before publish."
+        )
         release_notes = _render_release_notes(
             previous_tag=previous_tag,
             next_tag=None,
@@ -845,7 +868,9 @@ def prepare_release_plan(
     _, next_tag, version_notes = detect_next_version(release_label, latest_tag=previous_tag)
     notes.extend(version_notes)
     if release_label == "NO_BUMP":
-        notes.append("Release scope resolved to NO_BUMP; no tag or GitHub Release will be published.")
+        notes.append(
+            "Release scope resolved to NO_BUMP; no tag or GitHub Release will be published."
+        )
         release_notes = _render_no_release_notes(
             previous_tag=previous_tag,
             release_label=release_label,

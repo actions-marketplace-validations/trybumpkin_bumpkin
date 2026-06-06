@@ -7,12 +7,6 @@ GITHUB_MODELS_ENDPOINT = "https://models.github.ai/inference/chat/completions"
 OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
 
 
-def _looks_like_openrouter_token(value: str | None) -> bool:
-    if not value:
-        return False
-    return value.strip().startswith("sk-or-v1-")
-
-
 def is_openrouter_endpoint(endpoint: str | None) -> bool:
     if not endpoint:
         return False

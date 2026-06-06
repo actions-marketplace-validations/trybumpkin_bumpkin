@@ -8,16 +8,16 @@ from .recommendations import (
 from .releases import (
     GitHubReleasePublisher,
     NoopReleasePublisher,
+    ReleasePublisher,
     ReleasePublishRequest,
     ReleasePublishResult,
-    ReleasePublisher,
 )
 from .tags import (
     GitHubTagPublisher,
     NoopTagPublisher,
+    TagPublisher,
     TagPublishRequest,
     TagPublishResult,
-    TagPublisher,
 )
 from .types import AppEvent
 

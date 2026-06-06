@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import cast
 
-from bumpkin.app.recommendations import MergeRecommendation
-from bumpkin.app.releases import ReleasePublishResult
-from bumpkin.app.tags import TagPublishResult
+from bumpkin.github.recommendations import MergeRecommendation, MergeRecommendationRequest
+from bumpkin.github.releases import ReleasePublishRequest, ReleasePublishResult
+from bumpkin.github.tags import TagPublishRequest, TagPublishResult
 from bumpkin.release_job import (
     ReleaseExecutionResult,
     ReleaseScopedPullRequest,
@@ -69,8 +70,9 @@ class _FakeRecommendationRunner:
     def __init__(self, labels_by_pr: dict[int, str]) -> None:
         self._labels_by_pr = labels_by_pr
 
-    def generate(self, request) -> MergeRecommendation:  # type: ignore[no-untyped-def]
-        pr_number = int(request.payload["pull_request"]["number"])
+    def generate(self, request: MergeRecommendationRequest) -> MergeRecommendation:
+        pr_payload = cast("dict[str, object]", request.payload["pull_request"])
+        pr_number = int(cast("int | str", pr_payload["number"]))
         label = self._labels_by_pr[pr_number]
         return MergeRecommendation(
             body=(
@@ -88,7 +90,7 @@ class _FakeRecommendationRunner:
 
 
 class _InvalidRecommendationRunner:
-    def generate(self, request) -> MergeRecommendation:  # type: ignore[no-untyped-def]
+    def generate(self, request: MergeRecommendationRequest) -> MergeRecommendation:
         _ = request
         return MergeRecommendation(
             body="recommendation: n/a",
@@ -100,9 +102,9 @@ class _InvalidRecommendationRunner:
 class _FakeTagPublisher:
     def __init__(self, status: str = "created") -> None:
         self._status = status
-        self.calls: list[object] = []
+        self.calls: list[TagPublishRequest] = []
 
-    def publish(self, request):  # type: ignore[no-untyped-def]
+    def publish(self, request: TagPublishRequest) -> TagPublishResult:
         self.calls.append(request)
         return TagPublishResult(
             status=self._status,
@@ -114,9 +116,9 @@ class _FakeTagPublisher:
 class _FakeReleasePublisher:
     def __init__(self, status: str = "created") -> None:
         self._status = status
-        self.calls: list[object] = []
+        self.calls: list[ReleasePublishRequest] = []
 
-    def publish(self, request):  # type: ignore[no-untyped-def]
+    def publish(self, request: ReleasePublishRequest) -> ReleasePublishResult:
         self.calls.append(request)
         return ReleasePublishResult(
             status=self._status,
@@ -149,8 +151,10 @@ def test_release_job_flow_plans_and_publishes_release_batch(monkeypatch) -> None
     tag_publisher = _FakeTagPublisher(status="exists")
     release_publisher = _FakeReleasePublisher(status="updated")
 
-    monkeypatch.setattr("bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main"))
-    monkeypatch.setattr("bumpkin.release_job.list_tags", lambda: [])
+    monkeypatch.setattr(
+        "bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main")
+    )
+    monkeypatch.setattr("bumpkin.release_job.list_tags", list)
 
     plan = prepare_release_plan(
         repository="acme/repo",
@@ -179,8 +183,10 @@ def test_release_job_flow_plans_and_publishes_release_batch(monkeypatch) -> None
     assert result.status == "published"
     assert len(tag_publisher.calls) == 1
     assert len(release_publisher.calls) == 1
-    assert tag_publisher.calls[0].tag_name == "v1.3.0"
-    assert release_publisher.calls[0].tag_name == "v1.3.0"
+    tag_call = cast("TagPublishRequest", tag_publisher.calls[0])
+    release_call = cast("ReleasePublishRequest", release_publisher.calls[0])
+    assert tag_call.tag_name == "v1.3.0"
+    assert release_call.tag_name == "v1.3.0"
 
 
 def test_release_job_flow_skips_publish_for_no_bump_batch(monkeypatch) -> None:
@@ -200,8 +206,10 @@ def test_release_job_flow_skips_publish_for_no_bump_batch(monkeypatch) -> None:
     tag_publisher = _FakeTagPublisher()
     release_publisher = _FakeReleasePublisher()
 
-    monkeypatch.setattr("bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main"))
-    monkeypatch.setattr("bumpkin.release_job.list_tags", lambda: [])
+    monkeypatch.setattr(
+        "bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main")
+    )
+    monkeypatch.setattr("bumpkin.release_job.list_tags", list)
 
     plan = prepare_release_plan(
         repository="acme/repo",
@@ -243,8 +251,10 @@ def test_release_job_flow_surfaces_needs_review_batch(monkeypatch) -> None:
     )
     runner = _InvalidRecommendationRunner()
 
-    monkeypatch.setattr("bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main"))
-    monkeypatch.setattr("bumpkin.release_job.list_tags", lambda: [])
+    monkeypatch.setattr(
+        "bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main")
+    )
+    monkeypatch.setattr("bumpkin.release_job.list_tags", list)
 
     plan = prepare_release_plan(
         repository="acme/repo",

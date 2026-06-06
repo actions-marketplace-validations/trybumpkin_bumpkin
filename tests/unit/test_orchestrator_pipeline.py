@@ -30,7 +30,7 @@ def test_pipeline_run_stays_quiet_in_capture_mode(monkeypatch, capsys) -> None:
     )
     monkeypatch.setattr(
         "bumpkin.orchestrator.pipeline.load_bumpkin_config",
-        lambda: orchestrator_pipeline._fallback_config(),
+        orchestrator_pipeline._fallback_config,
     )
     monkeypatch.setattr(
         "bumpkin.orchestrator.pipeline.build_diff",
@@ -48,7 +48,9 @@ def test_pipeline_run_stays_quiet_in_capture_mode(monkeypatch, capsys) -> None:
         "bumpkin.orchestrator.pipeline.orchestrator_scope.evaluate_scope_mismatch",
         lambda **_kwargs: (False, None),
     )
-    monkeypatch.setattr("bumpkin.orchestrator.pipeline.resolve_models_token", lambda endpoint: "token")
+    monkeypatch.setattr(
+        "bumpkin.orchestrator.pipeline.resolve_models_token", lambda endpoint: "token"
+    )
     monkeypatch.setattr("bumpkin.orchestrator.pipeline.detect_language_groups", lambda _files: [])
     monkeypatch.setattr("bumpkin.orchestrator.pipeline.detect_language_hints", lambda _files: [])
     monkeypatch.setattr(
@@ -90,7 +92,9 @@ def test_pipeline_run_stays_quiet_in_capture_mode(monkeypatch, capsys) -> None:
             contradictions=[],
         ),
     )
-    monkeypatch.setattr("bumpkin.orchestrator.pipeline.validate_output_contract", lambda _output: [])
+    monkeypatch.setattr(
+        "bumpkin.orchestrator.pipeline.validate_output_contract", lambda _output: []
+    )
     monkeypatch.setattr(
         "bumpkin.orchestrator.pipeline.format_recommendation_comment",
         lambda **_kwargs: "<!-- bumpkin:recommendation -->\nbody\n",

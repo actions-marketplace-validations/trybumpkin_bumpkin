@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import argparse
 from datetime import UTC, datetime
+from typing import cast
 
-from bumpkin.app.recommendations import MergeRecommendation
-from bumpkin.app.releases import ReleasePublishRequest, ReleasePublishResult
-from bumpkin.app.tags import TagPublishRequest, TagPublishResult
+from bumpkin.github.recommendations import MergeRecommendation, MergeRecommendationRequest
+from bumpkin.github.releases import ReleasePublishRequest, ReleasePublishResult
+from bumpkin.github.tags import TagPublishRequest, TagPublishResult
 from bumpkin.release_job import (
     ReleaseExecutionResult,
     ReleasePlan,
@@ -73,9 +74,9 @@ class _FakeRecommendationRunner:
         self._labels_by_pr = labels_by_pr
         self.requested_pr_numbers: list[int] = []
 
-    def generate(self, request) -> MergeRecommendation:  # type: ignore[no-untyped-def]
-        pr_payload = request.payload["pull_request"]
-        pr_number = int(pr_payload["number"])
+    def generate(self, request: MergeRecommendationRequest) -> MergeRecommendation:
+        pr_payload = cast("dict[str, object]", request.payload["pull_request"])
+        pr_number = int(cast("int | str", pr_payload["number"]))
         self.requested_pr_numbers.append(pr_number)
         label = self._labels_by_pr[pr_number]
         return MergeRecommendation(
@@ -98,9 +99,9 @@ class _InvalidRecommendationRunner:
     def __init__(self) -> None:
         self.requested_pr_numbers: list[int] = []
 
-    def generate(self, request) -> MergeRecommendation:  # type: ignore[no-untyped-def]
-        pr_payload = request.payload["pull_request"]
-        pr_number = int(pr_payload["number"])
+    def generate(self, request: MergeRecommendationRequest) -> MergeRecommendation:
+        pr_payload = cast("dict[str, object]", request.payload["pull_request"])
+        pr_number = int(cast("int | str", pr_payload["number"]))
         self.requested_pr_numbers.append(pr_number)
         return MergeRecommendation(
             body="recommendation: n/a",
@@ -159,8 +160,10 @@ def test_prepare_release_plan_builds_release_batch(monkeypatch) -> None:
     )
     runner = _FakeRecommendationRunner({12: "MINOR", 14: "PATCH"})
 
-    monkeypatch.setattr("bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main"))
-    monkeypatch.setattr("bumpkin.release_job.list_tags", lambda: [])
+    monkeypatch.setattr(
+        "bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main")
+    )
+    monkeypatch.setattr("bumpkin.release_job.list_tags", list)
 
     plan = prepare_release_plan(
         repository="acme/repo",
@@ -184,11 +187,19 @@ def test_prepare_release_plan_builds_release_batch(monkeypatch) -> None:
     assert "## Versioning context" in plan.release_notes
     assert "- Detected versioning scheme: semver." in plan.release_notes
     assert "## Key evidence" in plan.release_notes
-    assert "- PR #12: src/api.py - export symbol added; public api; publicThing" in plan.release_notes
+    assert (
+        "- PR #12: src/api.py - export symbol added; public api; publicThing" in plan.release_notes
+    )
     assert "## Features" in plan.release_notes
     assert "## Fixes" in plan.release_notes
-    assert "- [PR #12](https://github.com/acme/repo/pull/12) by @alice: Add release-scoped aggregation" in plan.release_notes
-    assert "- [PR #14](https://github.com/acme/repo/pull/14) by @bob: Fix duplicate tag publishing" in plan.release_notes
+    assert (
+        "- [PR #12](https://github.com/acme/repo/pull/12) by @alice: Add release-scoped aggregation"
+        in plan.release_notes
+    )
+    assert (
+        "- [PR #14](https://github.com/acme/repo/pull/14) by @bob: Fix duplicate tag publishing"
+        in plan.release_notes
+    )
     assert "## Contributors" in plan.release_notes
     assert "@alice, @bob" in plan.release_notes
 
@@ -203,8 +214,10 @@ def test_prepare_release_plan_returns_empty_preview_when_scope_has_no_pull_reque
         pull_requests={},
     )
 
-    monkeypatch.setattr("bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main"))
-    monkeypatch.setattr("bumpkin.release_job.list_tags", lambda: [])
+    monkeypatch.setattr(
+        "bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main")
+    )
+    monkeypatch.setattr("bumpkin.release_job.list_tags", list)
 
     plan = prepare_release_plan(
         repository="acme/repo",
@@ -238,8 +251,10 @@ def test_prepare_release_plan_returns_no_release_plan_for_no_bump_batch(monkeypa
     )
     runner = _FakeRecommendationRunner({21: "NO_BUMP"})
 
-    monkeypatch.setattr("bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main"))
-    monkeypatch.setattr("bumpkin.release_job.list_tags", lambda: [])
+    monkeypatch.setattr(
+        "bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main")
+    )
+    monkeypatch.setattr("bumpkin.release_job.list_tags", list)
 
     plan = prepare_release_plan(
         repository="acme/repo",
@@ -276,8 +291,10 @@ def test_prepare_release_plan_explains_zero_based_versioning_context(monkeypatch
     )
     runner = _FakeRecommendationRunner({25: "MAJOR"})
 
-    monkeypatch.setattr("bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main"))
-    monkeypatch.setattr("bumpkin.release_job.list_tags", lambda: [])
+    monkeypatch.setattr(
+        "bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main")
+    )
+    monkeypatch.setattr("bumpkin.release_job.list_tags", list)
 
     plan = prepare_release_plan(
         repository="acme/repo",
@@ -313,8 +330,10 @@ def test_prepare_release_plan_returns_needs_review_for_unresolved_batch(monkeypa
     )
     runner = _InvalidRecommendationRunner()
 
-    monkeypatch.setattr("bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main"))
-    monkeypatch.setattr("bumpkin.release_job.list_tags", lambda: [])
+    monkeypatch.setattr(
+        "bumpkin.release_job._resolve_target_ref", lambda _target: ("main", "sha-main")
+    )
+    monkeypatch.setattr("bumpkin.release_job.list_tags", list)
 
     plan = prepare_release_plan(
         repository="acme/repo",
@@ -334,15 +353,6 @@ def test_prepare_release_plan_returns_needs_review_for_unresolved_batch(monkeypa
 
 
 def test_publish_release_plan_accepts_existing_tag_and_updates_release() -> None:
-    rendered_release_notes = (
-        "# v1.3.0\n\n"
-        "Previous tag: v1.2.3\n"
-        "Next tag: v1.3.0\n"
-        "Release type: MINOR\n"
-        "Included PRs: 1\n\n"
-        "## Why this bump\n"
-        "- User-facing additive changes were detected in 1 merged PR(s).\n"
-    )
     plan = ReleasePlan(
         repository="acme/repo",
         target_ref="main",
@@ -367,9 +377,11 @@ def test_publish_release_plan_accepts_existing_tag_and_updates_release() -> None
 
     assert isinstance(result, ReleaseExecutionResult)
     assert result.status == "published"
-    assert tag_publisher.calls[0].tag_name == "v1.3.0"
-    assert release_publisher.calls[0].tag_name == "v1.3.0"
-    assert release_publisher.calls[0].body == "# v1.3.0\n"
+    tag_call = cast("TagPublishRequest", tag_publisher.calls[0])
+    release_call = cast("ReleasePublishRequest", release_publisher.calls[0])
+    assert tag_call.tag_name == "v1.3.0"
+    assert release_call.tag_name == "v1.3.0"
+    assert release_call.body == "# v1.3.0\n"
 
 
 def test_publish_release_plan_skips_no_bump_batches() -> None:

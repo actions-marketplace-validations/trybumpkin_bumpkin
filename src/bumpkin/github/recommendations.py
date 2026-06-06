@@ -534,7 +534,9 @@ class PipelineRecommendationRunner:
         if not self._models_endpoint.strip():
             raise ValueError("BUMPKIN_MODELS_ENDPOINT is required for recommendation runs.")
         if not is_valid_models_endpoint(self._models_endpoint):
-            raise ValueError("BUMPKIN_MODELS_ENDPOINT must be a valid http(s) URL for recommendation runs.")
+            raise ValueError(
+                "BUMPKIN_MODELS_ENDPOINT must be a valid http(s) URL for recommendation runs."
+            )
         token = (request.provider_token or "").strip()
         fallback_diff_builder: Any | None = None
         try:

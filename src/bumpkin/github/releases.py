@@ -45,6 +45,18 @@ def _as_dict(value: object) -> dict[str, Any] | None:
     return cast("dict[str, Any]", value)
 
 
+def _as_int(value: object) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        return int(value)
+    raise TypeError(f"expected int-like value, got {type(value).__name__}")
+
+
 class GitHubReleasePublisher:
     def __init__(
         self,
@@ -90,7 +102,9 @@ class GitHubReleasePublisher:
             "generate_release_notes": False,
         }
         if existing_release is not None:
-            release_id = int(existing_release["id"])
+            release_id = _as_int(existing_release.get("id"))
+            if release_id is None:
+                raise RuntimeError("GitHub release payload is missing an id.")
             response = self._api_request(
                 url=f"https://api.github.com/repos/{repository}/releases/{release_id}",
                 method="PATCH",
@@ -103,7 +117,7 @@ class GitHubReleasePublisher:
                 status="updated",
                 tag_name=tag_name,
                 url=self._release_url_from_payload(repository=repository, payload=response_obj),
-                release_id=int(response_obj.get("id")) if response_obj.get("id") is not None else None,
+                release_id=_as_int(response_obj.get("id")),
             )
 
         response = self._api_request(
@@ -118,7 +132,7 @@ class GitHubReleasePublisher:
             status="created",
             tag_name=tag_name,
             url=self._release_url_from_payload(repository=repository, payload=response_obj),
-            release_id=int(response_obj.get("id")) if response_obj.get("id") is not None else None,
+            release_id=_as_int(response_obj.get("id")),
         )
 
     def _get_release_by_tag(self, *, repository: str, tag_name: str) -> dict[str, Any] | None:
@@ -131,8 +145,7 @@ class GitHubReleasePublisher:
             if err.code == 404:
                 return None
             raise RuntimeError(_format_http_error(err)) from err
-        response_obj = _as_dict(response)
-        return response_obj
+        return _as_dict(response)
 
     def _api_request(
         self,

@@ -405,6 +405,28 @@ def test_publish_release_plan_skips_no_bump_batches() -> None:
     assert result.release_result is None
 
 
+def test_publish_release_plan_skips_empty_release_batches() -> None:
+    plan = ReleasePlan(
+        repository="acme/repo",
+        target_ref="main",
+        target_sha="sha-main",
+        previous_tag="v1.2.3",
+        next_tag=None,
+        release_label=None,
+        pull_requests=(),
+        recommendations=(),
+        release_notes="# Release Preview\n",
+        notes=(),
+        status="skipped",
+    )
+
+    result = publish_release_plan(plan, github_token="token-123")
+
+    assert result.status == "skipped"
+    assert result.tag_result is None
+    assert result.release_result is None
+
+
 def test_publish_release_plan_blocks_needs_review_batches() -> None:
     plan = ReleasePlan(
         repository="acme/repo",

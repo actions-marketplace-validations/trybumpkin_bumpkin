@@ -927,7 +927,7 @@ def publish_release_plan(
     if plan.status == "needs_review":
         return ReleaseExecutionResult(status="needs_review", plan=plan)
     if not plan.next_tag:
-        if plan.release_label == "NO_BUMP":
+        if plan.status == "skipped" or plan.release_label == "NO_BUMP":
             return ReleaseExecutionResult(status="skipped", plan=plan)
         raise RuntimeError("Cannot publish a release plan without a next tag.")
     tag_publisher_impl = tag_publisher or GitHubTagPublisher(token=normalized_token)

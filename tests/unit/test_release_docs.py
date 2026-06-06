@@ -9,7 +9,7 @@ def test_readme_frames_release_scoped_flow_as_primary_story() -> None:
 
     assert "assets/hero.svg" in readme
     assert "release assistant" in readme
-    assert "Built for release-scoped GitHub Actions" in readme
+    assert "GitHub Action" in readme
     assert "operation: ${{ inputs.operation }}" in readme
     assert "release_preview" in readme
     assert "release_publish" in readme

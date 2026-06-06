@@ -452,6 +452,17 @@ def _bytes_request(
     url: str,
     timeout_seconds: int,
 ) -> bytes:
+    class _GitHubRedirectHandler(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[override]
+            redirected = super().redirect_request(req, fp, code, msg, headers, newurl)
+            if redirected is None:
+                return None
+            original_host = urllib.parse.urlparse(req.full_url).netloc
+            redirected_host = urllib.parse.urlparse(newurl).netloc
+            if original_host and redirected_host and original_host != redirected_host:
+                redirected.headers.pop("Authorization", None)
+            return redirected
+
     request = urllib.request.Request(
         url,
         method="GET",
@@ -461,8 +472,9 @@ def _bytes_request(
             "User-Agent": "bumpkin-release-job",
         },
     )
+    opener = urllib.request.build_opener(_GitHubRedirectHandler)
     try:
-        with urllib.request.urlopen(request, timeout=max(1, timeout_seconds)) as response:
+        with opener.open(request, timeout=max(1, timeout_seconds)) as response:
             body = response.read()
     except urllib.error.HTTPError as err:
         detail = err.read().decode("utf-8", errors="ignore").strip()

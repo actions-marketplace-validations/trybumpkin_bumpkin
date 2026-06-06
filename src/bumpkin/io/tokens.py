@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from urllib.parse import urlparse
 
 GITHUB_MODELS_ENDPOINT = "https://models.github.ai/inference/chat/completions"
 OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
@@ -22,6 +23,16 @@ def is_github_models_endpoint(endpoint: str | None) -> bool:
     if not endpoint:
         return False
     return "models.github.ai" in endpoint.strip().lower()
+
+
+def is_valid_models_endpoint(endpoint: str | None) -> bool:
+    if not endpoint:
+        return False
+    normalized = endpoint.strip()
+    if not normalized:
+        return False
+    parsed = urlparse(normalized)
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
 
 
 def resolve_models_endpoint() -> str:
@@ -60,6 +71,7 @@ __all__ = [
     "OPENROUTER_ENDPOINT",
     "is_github_models_endpoint",
     "is_openrouter_endpoint",
+    "is_valid_models_endpoint",
     "resolve_models_endpoint",
     "resolve_models_token",
 ]

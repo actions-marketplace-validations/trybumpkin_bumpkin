@@ -11,7 +11,7 @@ from bumpkin.policies import engine as policy_engine
 from bumpkin.policies import guards as guard_policies
 from config import BumpkinConfig
 from findings import Finding
-from token_env import resolve_models_endpoint
+from token_env import is_valid_models_endpoint, resolve_models_endpoint
 
 
 def _categorize_failure_reason(reason: str | None) -> str | None:
@@ -466,6 +466,8 @@ def main() -> int:
         raise ValueError("BUMPKIN_MODEL or --model is required.")
     if not str(args.models_endpoint or "").strip():
         raise ValueError("BUMPKIN_MODELS_ENDPOINT or --models-endpoint is required.")
+    if not is_valid_models_endpoint(str(args.models_endpoint)):
+        raise ValueError("BUMPKIN_MODELS_ENDPOINT or --models-endpoint must be a valid http(s) URL.")
     from bumpkin.orchestrator import pipeline as orchestrator_pipeline
 
     return orchestrator_pipeline.run(args)

@@ -16,6 +16,7 @@ from tempfile import NamedTemporaryFile
 from typing import Any, Protocol
 
 from bumpkin.github.types import AppEvent
+from bumpkin.io.tokens import is_valid_models_endpoint
 from bumpkin.orchestrator import pipeline as orchestrator_pipeline
 
 _PROPOSED_BUMP_RE = re.compile(r"(?im)^proposed bump \(court\):\s*(?P<label>[^\n\r(]+)")
@@ -532,6 +533,8 @@ class PipelineRecommendationRunner:
             raise ValueError("BUMPKIN_MODEL is required for recommendation runs.")
         if not self._models_endpoint.strip():
             raise ValueError("BUMPKIN_MODELS_ENDPOINT is required for recommendation runs.")
+        if not is_valid_models_endpoint(self._models_endpoint):
+            raise ValueError("BUMPKIN_MODELS_ENDPOINT must be a valid http(s) URL for recommendation runs.")
         token = (request.provider_token or "").strip()
         fallback_diff_builder: Any | None = None
         try:

@@ -135,6 +135,13 @@ runs:
         require_bumpkin_input "MODELS_TOKEN" "${MODELS_TOKEN:-}"
         require_bumpkin_input "BUMPKIN_MODEL" "${BUMPKIN_MODEL:-}"
         require_bumpkin_input "BUMPKIN_MODELS_ENDPOINT" "${BUMPKIN_MODELS_ENDPOINT:-}"
+        case "${BUMPKIN_MODELS_ENDPOINT}" in
+          http://*|https://*) ;;
+          *)
+            echo "::error title=Invalid Bumpkin configuration::BUMPKIN_MODELS_ENDPOINT must be a valid http(s) URL." >&2
+            exit 1
+            ;;
+        esac
 
         case "${{ inputs.operation }}" in
           release_preview)

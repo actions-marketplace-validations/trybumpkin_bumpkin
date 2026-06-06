@@ -3,6 +3,7 @@ from bumpkin.io.tokens import (
     OPENROUTER_ENDPOINT,
     is_github_models_endpoint,
     is_openrouter_endpoint,
+    is_valid_models_endpoint,
     resolve_models_endpoint,
     resolve_models_token,
 )
@@ -12,6 +13,7 @@ __all__ = [
     "OPENROUTER_ENDPOINT",
     "is_github_models_endpoint",
     "is_openrouter_endpoint",
+    "is_valid_models_endpoint",
     "resolve_models_endpoint",
     "resolve_models_token",
 ]

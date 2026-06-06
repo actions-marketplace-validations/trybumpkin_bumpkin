@@ -1,4 +1,10 @@
-from token_env import OPENROUTER_ENDPOINT, is_openrouter_endpoint, resolve_models_endpoint, resolve_models_token
+from token_env import (
+    OPENROUTER_ENDPOINT,
+    is_openrouter_endpoint,
+    is_valid_models_endpoint,
+    resolve_models_endpoint,
+    resolve_models_token,
+)
 
 
 def test_resolve_models_token_prefers_models_token(monkeypatch) -> None:
@@ -83,3 +89,11 @@ def test_resolve_models_endpoint_returns_empty_when_unset(monkeypatch) -> None:
 def test_is_openrouter_endpoint_detects_hostname() -> None:
     assert is_openrouter_endpoint("https://openrouter.ai/api/v1/chat/completions")
     assert not is_openrouter_endpoint("https://models.github.ai/inference/chat/completions")
+
+
+def test_is_valid_models_endpoint_requires_http_scheme() -> None:
+    assert is_valid_models_endpoint("https://generativelanguage.googleapis.com/v1beta/openai/")
+    assert is_valid_models_endpoint("http://localhost:1234/v1/chat/completions")
+    assert not is_valid_models_endpoint("generativelanguage.googleapis.com/v1beta/openai/")
+    assert not is_valid_models_endpoint("***")
+    assert not is_valid_models_endpoint("")
